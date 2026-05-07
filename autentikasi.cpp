@@ -378,3 +378,427 @@ void menuKelolaTransaksi() {
         }
     }
 }
+
+// ============================================================
+//  BAGIAN SORTING
+// ============================================================
+
+void merge_(Transaksi* arr, int kiri, int tengah, int kanan,
+            Pelanggan* pel, int jmlPel) {
+    int n1 = tengah - kiri + 1;
+    int n2 = kanan - tengah;
+
+    Transaksi* L  = new Transaksi[n1];
+    Transaksi* R_ = new Transaksi[n2];
+
+    for (int i = 0; i < n1; i++) L[i]  = arr[kiri + i];
+    for (int j = 0; j < n2; j++) R_[j] = arr[tengah + 1 + j];
+
+    int i = 0, j = 0, k = kiri;
+    while (i < n1 && j < n2) {
+        string nL = "", nR = "";
+        for (int x = 0; x < jmlPel; x++) {
+            if (pel[x].idPelanggan == L[i].idPelanggan)  nL = pel[x].nama;
+            if (pel[x].idPelanggan == R_[j].idPelanggan) nR = pel[x].nama;
+        }
+        for (char& c : nL) c = tolower(c);
+        for (char& c : nR) c = tolower(c);
+
+        if (nL <= nR) arr[k++] = L[i++];
+        else          arr[k++] = R_[j++];
+    }
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R_[j++];
+
+    delete[] L;
+    delete[] R_;
+}
+
+void mergeSortNama(Transaksi* arr, int kiri, int kanan, Pelanggan* pel, int jmlPel) {
+    if (kiri < kanan) {
+        int tengah = kiri + (kanan - kiri) / 2;
+        mergeSortNama(arr, kiri,      tengah, pel, jmlPel);
+        mergeSortNama(arr, tengah + 1, kanan, pel, jmlPel);
+        merge_(arr, kiri, tengah, kanan, pel, jmlPel);
+    }
+}
+
+int partisiQuick(Transaksi* arr, int lo, int hi) {
+    int pivot = arr[hi].hargaTotal;
+    int i     = lo - 1;
+    for (int j = lo; j < hi; j++) {
+        if (arr[j].hargaTotal >= pivot) {
+            i++;
+            Transaksi tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        }
+    }
+    Transaksi tmp = arr[i + 1]; arr[i + 1] = arr[hi]; arr[hi] = tmp;
+    return i + 1;
+}
+
+void quickSortHarga(Transaksi* arr, int lo, int hi) {
+    if (lo < hi) {
+        int p = partisiQuick(arr, lo, hi);
+        quickSortHarga(arr, lo,    p - 1);
+        quickSortHarga(arr, p + 1, hi);
+    }
+}
+
+void tampilkanRingkasTransaksi(Transaksi* arr, int jumlah) {
+    cout << B << left
+         << setw(7)  << "  Antri"
+         << setw(7)  << "ID"
+         << setw(18) << "Nama Pelanggan"
+         << setw(14) << "Harga"
+         << "Status" << R << "\n";
+    garis();
+    for (int i = 0; i < jumlah; i++) {
+        string hargaStr = (arr[i].hargaTotal == 0)
+                          ? DM + string("-") + R
+                          : GR + "Rp " + to_string(arr[i].hargaTotal) + R;
+        cout << "  " << YL << setw(5) << ("#" + to_string(arr[i].noAntrian)) << R << "  "
+             << left
+             << setw(7)  << arr[i].idTransaksi
+             << setw(18) << getNamaPelanggan(arr[i].idPelanggan)
+             << setw(14) << hargaStr
+             << warnaStatus(arr[i].status) << "\n";
+    }
+    garis();
+}
+
+void sortingData() {
+    if (jumlahTransaksi == 0) {
+        cout << DM << "  Belum ada data transaksi.\n" << R;
+        return;
+    }
+
+    cout << MG << "  SORTING DATA\n" << R;
+    garis();
+    cout << "  1. Nama Pelanggan  (Merge Sort  - Ascending A-Z)\n";
+    cout << "  2. Total Bayar     (Quick Sort  - Descending)\n";
+    garis();
+
+    int p;
+    while (true) {
+        p = inputAngka("  Pilih (1-2): ");
+        if (p == 1 || p == 2) break;
+        cout << RD << "  Pilihan tidak valid!\n" << R;
+    }
+
+    cout << "\n" << YL << "  DATA SEBELUM SORTING:\n" << R;
+    tampilkanRingkasTransaksi(daftarTransaksi, jumlahTransaksi);
+
+    if (p == 1) {
+        mergeSortNama(daftarTransaksi, 0, jumlahTransaksi - 1,
+                      daftarPelanggan, jumlahPelanggan);
+        cout << GR << "\n  Merge Sort Nama Pelanggan (A-Z) selesai.\n" << R;
+    } else {
+        quickSortHarga(daftarTransaksi, 0, jumlahTransaksi - 1);
+        cout << GR << "\n  Quick Sort Harga Total (Tertinggi ke Terendah) selesai.\n" << R;
+    }
+
+    cout << "\n" << GR << "  DATA SESUDAH SORTING:\n" << R;
+    tampilkanRingkasTransaksi(daftarTransaksi, jumlahTransaksi);
+
+    simpanData();
+}
+
+
+// ============================================================
+//  BAGIAN SEARCHING
+// ============================================================
+
+int binarySearchId(int targetId) {
+    Transaksi temp[MAKS_TRANSAKSI];
+    for (int i = 0; i < jumlahTransaksi; i++) temp[i] = daftarTransaksi[i];
+
+    for (int i = 0; i < jumlahTransaksi - 1; i++) {
+        int minIdx = i;
+        for (int j = i + 1; j < jumlahTransaksi; j++)
+            if (temp[j].idTransaksi < temp[minIdx].idTransaksi) minIdx = j;
+        Transaksi t = temp[i]; temp[i] = temp[minIdx]; temp[minIdx] = t;
+    }
+
+    int lo = 0, hi = jumlahTransaksi - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (temp[mid].idTransaksi == targetId) {
+            return cariIdxTransaksi(targetId);
+        } else if (temp[mid].idTransaksi < targetId) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return -1;
+}
+
+void linearSearchNama(const string& nama) {
+    string namaLow = nama;
+    for (char& c : namaLow) c = tolower(c);
+
+    bool ada = false;
+    cout << "\n" << CY << "  Hasil pencarian nama '" << nama << "':\n" << R;
+    garis();
+
+    for (int i = 0; i < jumlahTransaksi; i++) {
+        string np    = getNamaPelanggan(daftarTransaksi[i].idPelanggan);
+        string npLow = np;
+        for (char& c : npLow) c = tolower(c);
+
+        if (npLow.find(namaLow) != string::npos) {
+            tampilkanStruk(i);
+            ada = true;
+        }
+    }
+
+    if (!ada) cout << RD << "  Nama pelanggan tidak ditemukan.\n" << R;
+}
+
+void cariTransaksi() {
+    cout << BL << "  CARI TRANSAKSI\n" << R;
+    garis();
+    cout << "  1. Cari berdasarkan ID Transaksi   (Binary Search)\n";
+    cout << "  2. Cari berdasarkan Nama Pelanggan (Linear Search)\n";
+    garis();
+
+    int p;
+    while (true) {
+        p = inputAngka("  Pilih (1/2): ");
+        if (p == 1 || p == 2) break;
+        cout << RD << "  Pilihan tidak valid!\n" << R;
+    }
+
+    if (p == 1) {
+        int id  = inputAngka("  Masukkan ID Transaksi: ");
+        int idx = binarySearchId(id);
+        if (idx == -1) {
+            cout << RD << "  ID transaksi tidak ditemukan.\n" << R;
+        } else {
+            cout << GR << "  Transaksi ditemukan!\n" << R;
+            tampilkanStruk(idx);
+        }
+    } else {
+        string nama = inputTeks("  Masukkan nama pelanggan: ");
+        linearSearchNama(nama);
+    }
+}
+
+// ============================================================
+//  BAGIAN MENU PELANGGAN
+// ============================================================
+
+void lihatLayananTersedia() {
+    cout << MG << "  DAFTAR LAYANAN TERSEDIA\n" << R;
+    garis();
+    if (jumlahLayanan == 0) {
+        cout << DM << "  Belum ada layanan tersedia.\n" << R;
+        return;
+    }
+    cout << B << left
+         << setw(5)  << "  ID"
+         << setw(32) << "Nama Layanan"
+         << setw(9)  << "Jenis"
+         << setw(12) << "Harga"
+         << setw(9)  << "Estimasi"
+         << "Tambahan" << R << "\n";
+    garis();
+    for (int i = 0; i < jumlahLayanan; i++) {
+        Layanan& l = daftarLayanan[i];
+        string satuanHarga = (l.jenis == "Kiloan") ? "/kg" : "/pcs";
+        cout << "  " << YL << setw(3) << l.idLayanan << R << "  "
+             << left
+             << setw(32) << l.namaLayanan
+             << setw(9)  << l.jenis
+             << GR << setw(12) << ("Rp " + to_string((int)l.harga) + satuanHarga) << R
+             << setw(9)  << l.estimasi
+             << l.tambahan << "\n";
+    }
+    garis();
+}
+
+void buatOrderBaru() {
+    if (jumlahTransaksi >= MAKS_TRANSAKSI) {
+        cout << RD << "  Sistem penuh, hubungi admin.\n" << R;
+        return;
+    }
+    if (jumlahLayanan == 0) {
+        cout << RD << "  Belum ada layanan tersedia, hubungi admin.\n" << R;
+        return;
+    }
+
+    lihatLayananTersedia();
+    cout << "\n";
+
+    int idLay;
+    int idxLay = -1;
+    while (idxLay == -1) {
+        idLay  = inputAngka("  Pilih ID Layanan: ");
+        idxLay = cariIdxLayanan(idLay);
+        if (idxLay == -1) cout << RD << "  Layanan tidak ditemukan, ulangi.\n" << R;
+    }
+
+    Layanan& l = daftarLayanan[idxLay];
+    cout << "\n  Detail layanan yang dipilih:\n";
+    garis('-', 40);
+    cout << "  Nama     : " << l.namaLayanan << "\n";
+    cout << "  Jenis    : " << l.jenis << "\n";
+    cout << "  Harga    : " << GR << "Rp " << (int)l.harga
+         << R << " / " << (l.jenis == "Kiloan" ? "kg" : "pcs") << "\n";
+    cout << "  Estimasi : " << l.estimasi << "\n";
+    cout << "  Tambahan : " << l.tambahan << "\n";
+    garis('-', 40);
+
+    cout << CY << "  Lanjutkan order? (y/n): " << R;
+    string k; getline(cin, k);
+    if (k != "y" && k != "Y") {
+        cout << DM << "  Order dibatalkan.\n" << R;
+        return;
+    }
+
+    Transaksi trx;
+    trx.idTransaksi = nextIdTransaksi++;
+    trx.noAntrian   = nextNoAntrian++;
+    trx.idPelanggan = daftarPelanggan[idxPelangganAktif].idPelanggan;
+    trx.idLayanan   = idLay;
+    trx.berat       = 0;
+    trx.hargaTotal  = 0;
+    trx.status      = "Menunggu";
+    trx.statusBayar = "Belum Bayar";
+    trx.tglOrder    = tanggalHariIni();
+    trx.tglSelesai  = "";
+
+    daftarTransaksi[jumlahTransaksi++] = trx;
+    simpanData();
+
+    cout << GR << "\n  Order berhasil dibuat!\n" << R;
+    cout << "  Nomor Antrian : " << YL << B << "#" << trx.noAntrian << R << "\n";
+    cout << "  ID Order      : " << trx.idTransaksi << "\n";
+    cout << DM << "  Silakan antar pakaian ke toko.\n" << R;
+}
+
+void lihatOrderStrukSaya() {
+    int idPel = daftarPelanggan[idxPelangganAktif].idPelanggan;
+    cout << BL << "  ORDER & STRUK SAYA\n" << R;
+    garis();
+
+    bool ada = false;
+    cout << B << left
+         << setw(7)  << "  ID"
+         << setw(22) << "Layanan"
+         << setw(14) << "Status"
+         << "Bayar" << R << "\n";
+    garis();
+    for (int i = 0; i < jumlahTransaksi; i++) {
+        if (daftarTransaksi[i].idPelanggan == idPel) {
+            cout << "  " << YL << setw(5) << daftarTransaksi[i].idTransaksi << R << "  "
+                 << left
+                 << setw(22) << getNamaLayanan(daftarTransaksi[i].idLayanan).substr(0, 20)
+                 << setw(14) << warnaStatus(daftarTransaksi[i].status)
+                 << warnaStatus(daftarTransaksi[i].statusBayar) << "\n";
+            ada = true;
+        }
+    }
+    if (!ada) {
+        cout << DM << "  Belum ada order.\n" << R;
+        return;
+    }
+    garis();
+
+    int id = inputAngka("  Masukkan ID untuk lihat struk (0=batal): ");
+    if (id == 0) return;
+
+    int idx = cariIdxTransaksi(id);
+    if (idx == -1 || daftarTransaksi[idx].idPelanggan != idPel) {
+        cout << RD << "  Transaksi tidak ditemukan.\n" << R;
+        return;
+    }
+    tampilkanStruk(idx);
+}
+
+void batalkanOrder() {
+    int idPel = daftarPelanggan[idxPelangganAktif].idPelanggan;
+    cout << RD << "  BATALKAN ORDER\n" << R;
+    garis();
+
+    bool ada = false;
+    cout << B << left
+         << setw(7)  << "  ID"
+         << setw(22) << "Layanan"
+         << "Status" << R << "\n";
+    garis();
+    for (int i = 0; i < jumlahTransaksi; i++) {
+        if (daftarTransaksi[i].idPelanggan == idPel) {
+            cout << "  " << YL << setw(5) << daftarTransaksi[i].idTransaksi << R << "  "
+                 << left
+                 << setw(22) << getNamaLayanan(daftarTransaksi[i].idLayanan).substr(0, 20)
+                 << warnaStatus(daftarTransaksi[i].status) << "\n";
+            ada = true;
+        }
+    }
+    if (!ada) {
+        cout << DM << "  Tidak ada order yang bisa dibatalkan.\n" << R;
+        return;
+    }
+    garis();
+
+    int id = inputAngka("  Masukkan ID order yang dibatalkan (0=batal): ");
+    if (id == 0) return;
+
+    int idx = cariIdxTransaksi(id);
+    if (idx == -1 || daftarTransaksi[idx].idPelanggan != idPel) {
+        cout << RD << "  Transaksi tidak ditemukan.\n" << R;
+        return;
+    }
+
+    if (daftarTransaksi[idx].status != "Menunggu") {
+        cout << RD << "  Order sudah diproses, tidak bisa dibatalkan.\n" << R;
+        return;
+    }
+
+    cout << CY << "  Yakin batalkan order ini? (y/n): " << R;
+    string k; getline(cin, k);
+    if (k != "y" && k != "Y") {
+        cout << DM << "  Pembatalan dibatalkan.\n" << R;
+        return;
+    }
+
+    daftarTransaksi[idx].status = "Dibatalkan";
+    simpanData();
+    cout << GR << "  Order berhasil dibatalkan.\n" << R;
+}
+
+// =========================================================
+//  Menu utama pelanggan
+// =========================================================
+void menuPelanggan() {
+    bool aktif = true;
+    while (aktif) {
+        bersihkanLayar(); tampilkanHeader();
+        cout << BL << "  MENU PELANGGAN  |  "
+             << daftarPelanggan[idxPelangganAktif].nama << "\n" << R;
+        garis();
+        cout << "  1. Lihat Layanan Tersedia\n";
+        cout << "  2. Buat Order Baru\n";
+        cout << "  3. Lihat Order & Struk Saya\n";
+        cout << "  4. Batalkan Order\n";
+        cout << "  5. Logout\n";
+        garis();
+        int p = inputAngka("  Pilih: ");
+        switch (p) {
+            case 1: bersihkanLayar(); tampilkanHeader(); lihatLayananTersedia(); jedaLayar(); break;
+            case 2: bersihkanLayar(); tampilkanHeader(); buatOrderBaru();        jedaLayar(); break;
+            case 3: bersihkanLayar(); tampilkanHeader(); lihatOrderStrukSaya();  jedaLayar(); break;
+            case 4: bersihkanLayar(); tampilkanHeader(); batalkanOrder();        jedaLayar(); break;
+            case 5:
+                aktif = false;
+                idxPelangganAktif = -1;
+                cout << YL << "\n  Logout berhasil. Sampai jumpa!\n" << R;
+                jedaLayar();
+                break;
+            default:
+                cout << RD << "  Pilihan tidak valid.\n" << R;
+                jedaLayar();
+        }
+    }
+}
