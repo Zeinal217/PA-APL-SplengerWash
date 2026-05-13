@@ -8,6 +8,10 @@
 #include <cctype>
 #include <cstdlib>
 #include <stdexcept>
+#ifdef _WIN32
+#include <windows.h>
+#undef CYN
+#endif
 using namespace std;
 
 // ── Warna ANSI ────────────────────────────────────────────
@@ -20,7 +24,7 @@ const string GR = "\033[32m";
 const string YL = "\033[33m";
 const string BL = "\033[34m";
 const string MG = "\033[35m";
-const string CY = "\033[36m";
+const string CYN = "\033[36m";
 const string WH = "\033[37m";
 const string BGR = "\033[41m";
 const string BGG = "\033[42m";
@@ -100,33 +104,79 @@ void bersihkanLayar() {
 }
 
 void tampilkanHeader() {
-    cout << CY << B << "\n=== SISTEM LAUNDRY ===\n" << R;
+    cout << CYN << B << "\n=== SISTEM LAUNDRY ===\n" << R;
 }
 
 void jedaLayar() {
     cout << "\nTekan enter...";
-    cin.ignore();
     cin.get();
 }
 
 void tampilkanPesan(string tipe, string pesan) {
-    cout << pesan << endl;
+    if (tipe == "error")     cout << RD << "  [!] " << pesan << R << "\n";
+    else if (tipe == "sukses") cout << GR << "  [v] " << pesan << R << "\n";
+    else if (tipe == "info")   cout << CYN << "  [i] " << pesan << R << "\n";
+    else if (tipe == "peringatan") cout << YL << "  [~] " << pesan << R << "\n";
+    else cout << pesan << "\n";
 }
 
 bool konfirmasi(string text) {
-    char pilih;
-    cout << text << " (y/n): ";
-    cin >> pilih;
-    cin.ignore();
-    return pilih == 'y' || pilih == 'Y';
+    string pilih;
+    while (true) {
+        cout << text << " (y/n): ";
+        getline(cin, pilih);
+        if (pilih == "y" || pilih == "Y") return true;
+        if (pilih == "n" || pilih == "N") return false;
+        cout << RD << "  Input tidak valid! Ketik y atau n.\n" << R;
+    }
+}
+
+// Cek apakah string hanya huruf dan spasi (untuk nama)
+bool hanyaHuruf(const string& s) {
+    for (char c : s)
+        if (!isalpha(c) && c != ' ') return false;
+    return true;
+}
+
+// Cek apakah string hanya huruf dan angka (untuk username)
+bool hanyaHurufAngka(const string& s) {
+    for (char c : s)
+        if (!isalnum(c)) return false;
+    return true;
+}
+
+// Cek apakah string hanya angka dan titik (untuk angka desimal)
+bool formatDesimal(const string& s) {
+    int titik = 0;
+    for (char c : s) {
+        if (c == '.') { titik++; if (titik > 1) return false; }
+        else if (!isdigit(c)) return false;
+    }
+    return !s.empty();
 }
 
 string inputTeks(string text) {
     string x;
-    cout << text;
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    getline(cin, x);
-    return x;
+    while (true) {
+        cout << text;
+        getline(cin, x);
+        if (!x.empty()) return x;
+        cout << RD << "  Input tidak boleh kosong!\n" << R;
+    }
+}
+
+// Input nama: hanya huruf dan spasi, tidak boleh kosong
+string inputNama(string text) {
+    string x;
+    while (true) {
+        cout << text;
+        getline(cin, x);
+        if (x.empty()) { cout << RD << "  Nama tidak boleh kosong!\n" << R; continue; }
+        if (!hanyaHuruf(x)) { cout << RD << "  Nama hanya boleh huruf dan spasi!\n" << R; continue; }
+        if (x.length() < 3)  { cout << RD << "  Nama minimal 3 karakter!\n" << R; continue; }
+        if (x.length() > 50) { cout << RD << "  Nama maksimal 50 karakter!\n" << R; continue; }
+        return x;
+    }
 }
 
 string inputTeksBolehKosong(string text) {
@@ -137,33 +187,59 @@ string inputTeksBolehKosong(string text) {
 }
 
 int inputAngka(string text) {
-    int x;
-    cout << text;
-    cin >> x;
-    cin.ignore();
-    return x;
+    string s;
+    while (true) {
+        cout << text;
+        getline(cin, s);
+        if (s.empty()) { cout << RD << "  Input tidak boleh kosong!\n" << R; continue; }
+        bool valid = true;
+        for (char c : s) if (!isdigit(c)) { valid = false; break; }
+        if (!valid) { cout << RD << "  Input harus angka bulat!\n" << R; continue; }
+        try { return stoi(s); }
+        catch (...) { cout << RD << "  Angka terlalu besar!\n" << R; }
+    }
 }
 
-int inputAngkaBatas(string text, int min, int max) {
-    int x;
-    do {
-        cout << text;
-        cin >> x;
-        cin.ignore();
-    } while (x < min || x > max);
+int inputAngkaBatas(string text, int minVal, int maxVal) {
+    while (true) {
+        int x = inputAngka(text);
+        if (x >= minVal && x <= maxVal) return x;
+        cout << RD << "  Pilihan harus antara " << minVal << " dan " << maxVal << "!\n" << R;
+    }
+}
 
-    return x;
+// Input harga: angka positif, max 1.000.000
+float inputHarga(string text) {
+    string s;
+    while (true) {
+        cout << text;
+        getline(cin, s);
+        if (s.empty()) { cout << RD << "  Harga tidak boleh kosong!\n" << R; continue; }
+        if (!formatDesimal(s)) { cout << RD << "  Harga hanya boleh angka! Contoh: 5000\n" << R; continue; }
+        float v = stof(s);
+        if (v <= 0)       { cout << RD << "  Harga harus lebih dari 0!\n" << R; continue; }
+        if (v > 1000000)  { cout << RD << "  Harga maksimal Rp 1.000.000!\n" << R; continue; }
+        return v;
+    }
+}
+
+// Input berat: angka positif, max 100 kg/pcs
+float inputBerat(string text) {
+    string s;
+    while (true) {
+        cout << text;
+        getline(cin, s);
+        if (s.empty()) { cout << RD << "  Berat tidak boleh kosong!\n" << R; continue; }
+        if (!formatDesimal(s)) { cout << RD << "  Berat hanya boleh angka! Contoh: 2.5\n" << R; continue; }
+        float v = stof(s);
+        if (v <= 0)   { cout << RD << "  Berat harus lebih dari 0!\n" << R; continue; }
+        if (v > 100)  { cout << RD << "  Berat maksimal 100 kg/pcs!\n" << R; continue; }
+        return v;
+    }
 }
 
 float inputDesimalPositif(string text) {
-    float x;
-    do {
-        cout << text;
-        cin >> x;
-        cin.ignore();
-    } while (x <= 0);
-
-    return x;
+    return inputBerat(text);
 }
 
 int cariIdxLayanan(int id) {
@@ -452,43 +528,44 @@ void daftarPelanggan_() {
     cout << "=== DAFTAR PELANGGAN BARU ===\n";
 
     if (jumlahPelanggan >= MAKS_PELANGGAN) {
-        cout << "Kapasitas pengguna penuh.\n";
+        cout << RD << "  Kapasitas pengguna penuh.\n" << R;
         return;
     }
 
-    string nama, user, pass;
+    // Nama: hanya huruf dan spasi
+    string nama = inputNama("  Nama lengkap  : ");
 
-    cout << "Nama lengkap : ";
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    getline(cin, nama);
-
+    // Username: hanya huruf+angka, 4-20 karakter, unik
+    string user;
     while (true) {
-        cout << "Username : ";
-        cin >> user;
-
+        cout << "  Username (4-20 karakter, huruf/angka): ";
+        getline(cin, user);
+        if (user.empty())          { cout << RD << "  Username tidak boleh kosong!\n" << R; continue; }
+        if (user.length() < 4)     { cout << RD << "  Username minimal 4 karakter!\n" << R; continue; }
+        if (user.length() > 20)    { cout << RD << "  Username maksimal 20 karakter!\n" << R; continue; }
+        if (!hanyaHurufAngka(user)){ cout << RD << "  Username hanya boleh huruf dan angka!\n" << R; continue; }
         bool ada = false;
-        for (int i = 0; i < jumlahPelanggan; i++) {
-            if (daftarPelanggan[i].username == user) {
-                ada = true;
-                break;
-            }
-        }
-
-        if (!ada) break;
-
-        cout << "Username sudah digunakan, coba lain.\n";
+        for (int i = 0; i < jumlahPelanggan; i++)
+            if (daftarPelanggan[i].username == user) { ada = true; break; }
+        if (ada) { cout << RD << "  Username sudah digunakan, coba lain.\n" << R; continue; }
+        break;
     }
 
-    cout << "Password : ";
-    cin >> pass;
+    // Password: 6-30 karakter
+    string pass;
+    while (true) {
+        cout << "  Password (6-30 karakter): ";
+        getline(cin, pass);
+        if (pass.empty())       { cout << RD << "  Password tidak boleh kosong!\n" << R; continue; }
+        if (pass.length() < 6)  { cout << RD << "  Password minimal 6 karakter!\n" << R; continue; }
+        if (pass.length() > 30) { cout << RD << "  Password maksimal 30 karakter!\n" << R; continue; }
+        break;
+    }
 
-    daftarPelanggan[jumlahPelanggan] = {
-        nextIdPelanggan++, nama, user, pass
-    };
-
+    daftarPelanggan[jumlahPelanggan] = {nextIdPelanggan++, nama, user, pass};
     jumlahPelanggan++;
-
-    cout << "\nRegistrasi berhasil! Silakan login.\n";
+    simpanData();
+    cout << GR << "\n  Registrasi berhasil! Silakan login.\n" << R;
 }
 
 
@@ -504,29 +581,42 @@ void tambahLayananBaru() {
     cout << MG << B << "  TAMBAH LAYANAN BARU\n" << R;
     garis();
 
-    string nama = inputTeks("  Nama layanan         : ");
-
-    string jenis;
+    // Nama layanan: hanya huruf dan spasi
+    string nama;
     while (true) {
-        cout << "  Jenis layanan:\n";
-        cout << "    " << CY << "1" << R << ". Kiloan\n";
-        cout << "    " << CY << "2" << R << ". Satuan\n";
-        int pj = inputAngkaBatas("  Pilih (1/2): ", 1, 2);
-        jenis = (pj == 1) ? "Kiloan" : "Satuan";
+        cout << "  Nama layanan (huruf saja, 3-50 karakter): ";
+        getline(cin, nama);
+        if (nama.empty())        { tampilkanPesan("error", "Nama tidak boleh kosong!"); continue; }
+        if (!hanyaHuruf(nama))   { tampilkanPesan("error", "Nama layanan hanya boleh huruf dan spasi!"); continue; }
+        if (nama.length() < 3)   { tampilkanPesan("error", "Nama minimal 3 karakter!"); continue; }
+        if (nama.length() > 50)  { tampilkanPesan("error", "Nama maksimal 50 karakter!"); continue; }
         break;
     }
 
-    float harga = inputDesimalPositif("  Harga (per kg/pcs)   : Rp ");
+    cout << "  Jenis layanan:\n";
+    cout << "    " << CYN << "1" << R << ". Kiloan\n";
+    cout << "    " << CYN << "2" << R << ". Satuan\n";
+    int pj = inputAngkaBatas("  Pilih (1/2): ", 1, 2);
+    string jenis = (pj == 1) ? "Kiloan" : "Satuan";
 
-    string estimasi = inputTeks("  Estimasi (cth: 1 Hari): ");
+    // Harga: angka positif, max 1.000.000
+    float harga = inputHarga("  Harga (per kg/pcs) Rp: ");
+
+    // Estimasi: angka 1-30 hari
+    int hariEst;
+    while (true) {
+        hariEst = inputAngka("  Estimasi selesai (hari, 1-30): ");
+        if (hariEst >= 1 && hariEst <= 30) break;
+        tampilkanPesan("error", "Estimasi harus antara 1 sampai 30 hari!");
+    }
+    string estimasi = to_string(hariEst) + " Hari";
 
     cout << "  Layanan tambahan:\n";
-    cout << "    " << CY << "1" << R << ". Tanpa Setrika\n";
-    cout << "    " << CY << "2" << R << ". Setrika + Lipat\n";
+    cout << "    " << CYN << "1" << R << ". Tanpa Setrika\n";
+    cout << "    " << CYN << "2" << R << ". Setrika + Lipat\n";
     int pt = inputAngkaBatas("  Pilih (1/2): ", 1, 2);
     string tambahan = (pt == 1) ? "Tanpa Setrika" : "Setrika + Lipat";
 
-    // Konfirmasi sebelum simpan
     cout << "\n" << DM << "  Ringkasan:\n" << R;
     cout << "  Nama     : " << nama << "\n";
     cout << "  Jenis    : " << jenis << "\n";
@@ -595,9 +685,9 @@ void editLayanan() {
     if (!tmp.empty()) l.estimasi = tmp;
 
     cout << "  Tambahan baru:\n";
-    cout << "    " << CY << "0" << R << ". Lewati\n";
-    cout << "    " << CY << "1" << R << ". Tanpa Setrika\n";
-    cout << "    " << CY << "2" << R << ". Setrika + Lipat\n";
+    cout << "    " << CYN << "0" << R << ". Lewati\n";
+    cout << "    " << CYN << "1" << R << ". Tanpa Setrika\n";
+    cout << "    " << CYN << "2" << R << ". Setrika + Lipat\n";
     int p = inputAngkaBatas("  Pilih (0/1/2): ", 0, 2);
     if (p == 1) l.tambahan = "Tanpa Setrika";
     else if (p == 2) l.tambahan = "Setrika + Lipat";
@@ -640,10 +730,10 @@ void menuKelolalayanan() {
         cout << "  ║     KELOLA LAYANAN       ║\n";
         cout << "  ╚══════════════════════════╝\n" << R;
         garis();
-        cout << "  " << CY << "1" << R << ". Lihat Semua Layanan\n";
-        cout << "  " << CY << "2" << R << ". Tambah Layanan Baru\n";
-        cout << "  " << CY << "3" << R << ". Edit Layanan\n";
-        cout << "  " << CY << "4" << R << ". Hapus Layanan\n";
+        cout << "  " << CYN << "1" << R << ". Lihat Semua Layanan\n";
+        cout << "  " << CYN << "2" << R << ". Tambah Layanan Baru\n";
+        cout << "  " << CYN << "3" << R << ". Edit Layanan\n";
+        cout << "  " << CYN << "4" << R << ". Hapus Layanan\n";
         cout << "  " << RD << "0" << R << ". Kembali\n";
         garis();
         int p = inputAngka("  Pilih: ");
@@ -665,7 +755,7 @@ void menuKelolalayanan() {
 //  TAMPILAN TABEL TRANSAKSI
 // ═══════════════════════════════════════════════════════════
 void lihatSemuaOrder() {
-    cout << CY << B << "  SEMUA ORDER\n" << R;
+    cout << CYN << B << "  SEMUA ORDER\n" << R;
     garis('=', 62);
     if (jumlahTransaksi == 0) {
         tampilkanPesan("info", "Belum ada order masuk.");
@@ -849,14 +939,14 @@ void menuKelolaTransaksi() {
     bool aktif = true;
     while (aktif) {
         bersihkanLayar(); tampilkanHeader();
-        cout << CY << B << "  ╔══════════════════════════╗\n";
+        cout << CYN << B << "  ╔══════════════════════════╗\n";
         cout << "  ║    KELOLA TRANSAKSI      ║\n";
         cout << "  ╚══════════════════════════╝\n" << R;
         garis();
-        cout << "  " << CY << "1" << R << ". Lihat Semua Order\n";
-        cout << "  " << CY << "2" << R << ". Tambah Transaksi Manual (Walk-in)\n";
-        cout << "  " << CY << "3" << R << ". Update Status Order\n";
-        cout << "  " << CY << "4" << R << ". Hapus / Cancel Order\n";
+        cout << "  " << CYN << "1" << R << ". Lihat Semua Order\n";
+        cout << "  " << CYN << "2" << R << ". Tambah Transaksi Manual (Walk-in)\n";
+        cout << "  " << CYN << "3" << R << ". Update Status Order\n";
+        cout << "  " << CYN << "4" << R << ". Hapus / Cancel Order\n";
         cout << "  " << RD << "0" << R << ". Kembali\n";
         garis();
         int p = inputAngka("  Pilih: ");
@@ -1032,7 +1122,7 @@ void linearSearchNama(const string& nama) {
     for (char& c : namaLow) c = tolower(c);
 
     bool ada = false;
-    cout << "\n" << CY << "  Hasil pencarian nama '" << nama << "':\n" << R;
+    cout << "\n" << CYN << "  Hasil pencarian nama '" << nama << "':\n" << R;
     garis();
 
     for (int i = 0; i < jumlahTransaksi; i++) {
@@ -1143,7 +1233,7 @@ void buatOrderBaru() {
     cout << "  Tambahan : " << l.tambahan << "\n";
     garis('-', 40);
 
-    cout << CY << "  Lanjutkan order? (y/n): " << R;
+    cout << CYN << "  Lanjutkan order? (y/n): " << R;
     string k; getline(cin, k);
     if (k != "y" && k != "Y") {
         cout << DM << "  Order dibatalkan.\n" << R;
@@ -1250,7 +1340,7 @@ void batalkanOrder() {
         return;
     }
 
-    cout << CY << "  Yakin batalkan order ini? (y/n): " << R;
+    cout << CYN << "  Yakin batalkan order ini? (y/n): " << R;
     string k; getline(cin, k);
     if (k != "y" && k != "Y") {
         cout << DM << "  Pembatalan dibatalkan.\n" << R;
@@ -1266,6 +1356,63 @@ void batalkanOrder() {
 //  Menu utama admin
 // =========================================================
 
+void kelolaPelanggan() {
+    bool aktif = true;
+    while (aktif) {
+        bersihkanLayar(); tampilkanHeader();
+        cout << MG << B << "  ╔══════════════════════════╗\n";
+        cout << "  ║    KELOLA PELANGGAN      ║\n";
+        cout << "  ╚══════════════════════════╝\n" << R;
+        garis();
+        cout << "  " << CYN << "1" << R << ". Lihat Semua Pelanggan\n";
+        cout << "  " << CYN << "2" << R << ". Hapus Akun Pelanggan\n";
+        cout << "  " << RD  << "0" << R << ". Kembali\n";
+        garis();
+        int p = inputAngkaBatas("  Pilih: ", 0, 2);
+        if (p == 0) { aktif = false; break; }
+
+        if (p == 1) {
+            bersihkanLayar(); tampilkanHeader();
+            cout << MG << "  DAFTAR PELANGGAN\n" << R;
+            garis();
+            if (jumlahPelanggan == 0) { cout << DM << "  Belum ada pelanggan.\n" << R; jedaLayar(); continue; }
+            cout << B << left << setw(5) << "  ID" << setw(22) << "Nama"
+                 << setw(16) << "Username" << R << "\n";
+            garis();
+            for (int i = 0; i < jumlahPelanggan; i++)
+                cout << "  " << YL << setw(3) << daftarPelanggan[i].idPelanggan << R << "  "
+                     << left << setw(22) << daftarPelanggan[i].nama
+                     << daftarPelanggan[i].username << "\n";
+            garis();
+            jedaLayar();
+        } else {
+            bersihkanLayar(); tampilkanHeader();
+            cout << RD << B << "  HAPUS AKUN PELANGGAN\n" << R;
+            garis();
+            if (jumlahPelanggan == 0) { cout << DM << "  Belum ada pelanggan.\n" << R; jedaLayar(); continue; }
+            for (int i = 0; i < jumlahPelanggan; i++)
+                cout << "  " << YL << daftarPelanggan[i].idPelanggan << R
+                     << ". " << daftarPelanggan[i].nama
+                     << " (" << daftarPelanggan[i].username << ")\n";
+            garis();
+            int id = inputAngka("  Masukkan ID pelanggan yang dihapus (0=batal): ");
+            if (id == 0) continue;
+            int idx = cariIdxPelanggan(id);
+            if (idx == -1) { tampilkanPesan("error", "ID pelanggan tidak ditemukan!"); jedaLayar(); continue; }
+            cout << "\n  Hapus akun: " << RD << B << daftarPelanggan[idx].nama << R << "\n";
+            if (!konfirmasi("  Yakin ingin menghapus akun ini?")) {
+                tampilkanPesan("info", "Penghapusan dibatalkan."); jedaLayar(); continue;
+            }
+            for (int i = idx; i < jumlahPelanggan - 1; i++)
+                daftarPelanggan[i] = daftarPelanggan[i + 1];
+            jumlahPelanggan--;
+            simpanData();
+            tampilkanPesan("sukses", "Akun pelanggan berhasil dihapus.");
+            jedaLayar();
+        }
+    }
+}
+
 void menuAdmin() {
     bool aktif = true;
     while (aktif) {
@@ -1275,11 +1422,12 @@ void menuAdmin() {
         cout << "  ║  " << setw(20) << left << dataAdmin.username << " ║\n";
         cout << "  ╚══════════════════════════╝\n" << R;
         garis();
-        cout << "  " << CY << "1" << R << ". Kelola Layanan\n";
-        cout << "  " << CY << "2" << R << ". Kelola Transaksi\n";
-        cout << "  " << CY << "3" << R << ". Sorting Data\n";
-        cout << "  " << CY << "4" << R << ". Cari Transaksi\n";
-        cout << "  " << RD << "5" << R << ". Logout\n";
+        cout << "  " << CYN << "1" << R << ". Kelola Layanan\n";
+        cout << "  " << CYN << "2" << R << ". Kelola Transaksi\n";
+        cout << "  " << CYN << "3" << R << ". Sorting Data\n";
+        cout << "  " << CYN << "4" << R << ". Cari Transaksi\n";
+        cout << "  " << CYN << "5" << R << ". Kelola Pelanggan\n";
+        cout << "  " << RD << "6" << R << ". Logout\n";
         garis();
         int p = inputAngka("  Pilih: ");
         switch (p) {
@@ -1302,13 +1450,17 @@ void menuAdmin() {
                 jedaLayar();
                 break;
             case 5:
+                bersihkanLayar(); tampilkanHeader();
+                kelolaPelanggan();
+                break;
+            case 6:
                 aktif = false;
                 loginSebagaiAdmin = false;
                 cout << YL << "\n  Logout berhasil. Sampai jumpa!\n" << R;
                 jedaLayar();
                 break;
             default:
-                cout << RD << "  Pilihan tidak valid! Masukkan angka 1-5.\n" << R;
+                cout << RD << "  Pilihan tidak valid! Masukkan angka 1-6.\n" << R;
                 jedaLayar();
         }
     }
@@ -1352,6 +1504,14 @@ void menuPelanggan() {
 // MAIN
 
 int main() {
+    #ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD dwMode = 0;
+    GetConsoleMode(hOut, &dwMode);
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hOut, dwMode);
+    #endif
+    
     system("chcp 65001 > nul");
     muatData();
     int pilihan;
@@ -1362,9 +1522,9 @@ int main() {
         cout << "  ║     MENU UTAMA           ║\n";
         cout << "  ╚══════════════════════════╝\n" << R;
         garis();
-        cout << "  " << CY << "1" << R << ". Login Admin\n";
-        cout << "  " << CY << "2" << R << ". Login Pelanggan\n";
-        cout << "  " << CY << "3" << R << ". Daftar Pelanggan\n";
+        cout << "  " << CYN << "1" << R << ". Login Admin\n";
+        cout << "  " << CYN << "2" << R << ". Login Pelanggan\n";
+        cout << "  " << CYN << "3" << R << ". Daftar Pelanggan\n";
         cout << "  " << RD << "0" << R << ". Keluar\n";
         garis();
         pilihan = inputAngka("  Pilih: ");
