@@ -1,4 +1,4 @@
-6 7
+7 8
 1 6000
 Paket Hemat (Cuci + Setrika)
 Kiloan
@@ -9,23 +9,28 @@ Paket Express
 Kiloan
 1 Hari
 Setrika + Lipat
-3 4000
-Cuci Kering
-Kiloan
-2 Hari
-Tanpa Setrika
-4 3000
+3 3000
 Setrika Saja
 Kiloan
 1 Hari
 Setrika + Lipat
-5 15000
+4 15000
 Cuci Selimut / Bedcover
 Satuan
 3 Hari
 Tanpa Setrika
-6 20000
+5 20000
 Cuci Sepatu
 Satuan
 2 Hari
 Tanpa Setrika
+6 100000
+gaspol
+Kiloan
+1 Hari
+Tanpa Setrika
+7 20000
+jjj
+Kiloan
+2
+Setrika + Lipat
