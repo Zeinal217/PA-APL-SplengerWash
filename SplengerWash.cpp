@@ -1060,22 +1060,28 @@ void quickSortHarga(Transaksi* arr, int lo, int hi) {
 
 void tampilkanRingkasTransaksi(Transaksi* arr, int jumlah) {
     cout << B << left
-        << setw(7)  << "  Antri"
-        << setw(7)  << "ID"
-        << setw(18) << "Nama Pelanggan"
-        << setw(14) << "Harga"
-        << "Status" << R << "\n";
+         << setw(7)  << "  Antri"
+         << setw(7)  << "ID"
+         << setw(20) << "Nama Pelanggan"
+         << setw(14) << "Harga"
+         << "Status" << R << "\n";
     garis();
     for (int i = 0; i < jumlah; i++) {
-        string hargaStr = (arr[i].hargaTotal == 0)
-                        ? DM + string("-") + R
-                        : GR + "Rp " + to_string(arr[i].hargaTotal) + R;
-        cout << "  " << YL << setw(5) << ("#" + to_string(arr[i].noAntrian)) << R << "  "
-            << left
-            << setw(7)  << arr[i].idTransaksi
-            << setw(18) << getNamaPelanggan(arr[i].idPelanggan)
-            << setw(14) << hargaStr
-            << warnaStatus(arr[i].status) << "\n";
+        ostringstream ossAntri;
+        ossAntri << "#" << arr[i].noAntrian;
+        string antrianStr = ossAntri.str();
+        string hargaStr;
+        bool hargaKosong = (arr[i].hargaTotal == 0);
+        if (hargaKosong) {
+            hargaStr = "-";
+        } else {
+            hargaStr = "Rp " + to_string(arr[i].hargaTotal);
+        }
+        cout << "  " << YL << left << setw(5) << antrianStr << R << "  "
+             << left << setw(7)  << arr[i].idTransaksi << "  "
+             << left << setw(20) << getNamaPelanggan(arr[i].idPelanggan)
+             << (hargaKosong ? DM : GR) << left << setw(12) << hargaStr << R << "  "
+             << warnaStatus(arr[i].status) << "\n";
     }
     garis();
 }
@@ -1264,7 +1270,7 @@ void lihatOrderStrukSaya() {
     bool ada = false;
     cout << B << left
         << setw(7)  << "  ID"
-        << setw(22) << "Layanan"
+        << setw(32) << "Layanan"
         << setw(14) << "Status"
         << "Bayar" << R << "\n";
     garis();
@@ -1272,7 +1278,7 @@ void lihatOrderStrukSaya() {
         if (daftarTransaksi[i].idPelanggan == idPel) {
             cout << "  " << YL << setw(5) << daftarTransaksi[i].idTransaksi << R << "  "
                 << left
-                << setw(22) << getNamaLayanan(daftarTransaksi[i].idLayanan).substr(0, 20)
+                << setw(32) << getNamaLayanan(daftarTransaksi[i].idLayanan)
                 << setw(14) << warnaStatus(daftarTransaksi[i].status)
                 << warnaStatus(daftarTransaksi[i].statusBayar) << "\n";
             ada = true;
@@ -1300,14 +1306,14 @@ void batalkanOrder() {
     bool ada = false;
     cout << B << left
         << setw(7)  << "  ID"
-        << setw(22) << "Layanan"
+        << setw(32) << "Layanan"
         << "Status" << R << "\n";
     garis();
     for (int i = 0; i < jumlahTransaksi; i++) {
         if (daftarTransaksi[i].idPelanggan == idPel) {
             cout << "  " << YL << setw(5) << daftarTransaksi[i].idTransaksi << R << "  "
                 << left
-                << setw(22) << getNamaLayanan(daftarTransaksi[i].idLayanan).substr(0, 20)
+                << setw(32) << getNamaLayanan(daftarTransaksi[i].idLayanan)
                 << warnaStatus(daftarTransaksi[i].status) << "\n";
             ada = true;
         }
