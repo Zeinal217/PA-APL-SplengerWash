@@ -345,6 +345,19 @@ string getNamaLayanan(int id) {
     return "-";
 }
 
+string getNamaAktual(Transaksi trx) {
+    if (trx.namaWalkin != "") {
+        return trx.namaWalkin; 
+    }
+    
+    for (int i = 0; i < jumlahPelanggan; i++) {
+        if (daftarPelanggan[i].idPelanggan == trx.idPelanggan) {
+            return daftarPelanggan[i].nama;
+        }
+    }
+    return "-";
+}
+
 string warnaStatus(const string& s) { return s; }
 
 string tanggalHariIni() {
@@ -1003,7 +1016,7 @@ void menuKelolaTransaksi() {
     }
 }
 
-void merge_(Transaksi* arr, int kiri, int tengah, int kanan, Pelanggan* pel, int jmlPel) {
+void merge_(Transaksi* arr, int kiri, int tengah, int kanan) {
     int n1 = tengah - kiri + 1;
     int n2 = kanan - tengah;
     Transaksi* L  = new Transaksi[n1];
@@ -1012,11 +1025,8 @@ void merge_(Transaksi* arr, int kiri, int tengah, int kanan, Pelanggan* pel, int
     for (int j = 0; j < n2; j++) R_[j] = arr[tengah + 1 + j];
     int i = 0, j = 0, k = kiri;
     while (i < n1 && j < n2) {
-        string nL = "", nR = "";
-        for (int x = 0; x < jmlPel; x++) {
-            if (pel[x].idPelanggan == L[i].idPelanggan)  nL = pel[x].nama;
-            if (pel[x].idPelanggan == R_[j].idPelanggan) nR = pel[x].nama;
-        }
+        string nL = getNamaAktual(L[i]);
+        string nR = getNamaAktual(R_[j]);
         for (char& c : nL) c = tolower(static_cast<unsigned char>(c));
         for (char& c : nR) c = tolower(static_cast<unsigned char>(c));
         if (nL <= nR) arr[k++] = L[i++];
@@ -1028,12 +1038,12 @@ void merge_(Transaksi* arr, int kiri, int tengah, int kanan, Pelanggan* pel, int
     delete[] R_;
 }
 
-void mergeSortNama(Transaksi* arr, int kiri, int kanan, Pelanggan* pel, int jmlPel) {
+void mergeSortNama(Transaksi* arr, int kiri, int kanan) {
     if (kiri < kanan) {
         int tengah = kiri + (kanan - kiri) / 2;
-        mergeSortNama(arr, kiri,      tengah, pel, jmlPel);
-        mergeSortNama(arr, tengah + 1, kanan, pel, jmlPel);
-        merge_(arr, kiri, tengah, kanan, pel, jmlPel);
+        mergeSortNama(arr, kiri, tengah);
+        mergeSortNama(arr, tengah + 1, kanan);
+        merge_(arr, kiri, tengah, kanan);
     }
 }
 
@@ -1060,28 +1070,22 @@ void quickSortHarga(Transaksi* arr, int lo, int hi) {
 
 void tampilkanRingkasTransaksi(Transaksi* arr, int jumlah) {
     cout << B << left
-         << setw(7)  << "  Antri"
-         << setw(7)  << "ID"
-         << setw(20) << "Nama Pelanggan"
+         << setw(7) << " Antri"
+         << setw(7) << "ID"
+         << setw(18) << "Nama Pelanggan"
          << setw(14) << "Harga"
          << "Status" << R << "\n";
     garis();
     for (int i = 0; i < jumlah; i++) {
-        ostringstream ossAntri;
-        ossAntri << "#" << arr[i].noAntrian;
-        string antrianStr = ossAntri.str();
-        string hargaStr;
-        bool hargaKosong = (arr[i].hargaTotal == 0);
-        if (hargaKosong) {
-            hargaStr = "-";
-        } else {
-            hargaStr = "Rp " + to_string(arr[i].hargaTotal);
-        }
-        cout << "  " << YL << left << setw(5) << antrianStr << R << "  "
-             << left << setw(7)  << arr[i].idTransaksi << "  "
-             << left << setw(20) << getNamaPelanggan(arr[i].idPelanggan)
-             << (hargaKosong ? DM : GR) << left << setw(12) << hargaStr << R << "  "
-             << warnaStatus(arr[i].status) << "\n";
+        string hargaStr = (arr[i].hargaTotal == 0)
+                        ? DM + string("-") + R
+                        : GR + "Rp " + to_string(arr[i].hargaTotal) + R;
+        cout << "  " << YL << setw(5) << ("#" + to_string(arr[i].noAntrian)) << R << "  "
+            << left
+            << setw(7)  << arr[i].idTransaksi
+            << setw(18) << getNamaAktual(arr[i])
+            << setw(14) << hargaStr
+            << warnaStatus(arr[i].status) << "\n";
     }
     garis();
 }
@@ -1105,7 +1109,7 @@ void sortingData() {
     cout << "\n" << YL << "  DATA SEBELUM SORTING:\n" << R;
     tampilkanRingkasTransaksi(daftarTransaksi, jumlahTransaksi);
     if (p == 1) {
-        mergeSortNama(daftarTransaksi, 0, jumlahTransaksi - 1, daftarPelanggan, jumlahPelanggan);
+        mergeSortNama(daftarTransaksi, 0, jumlahTransaksi - 1);
         cout << GR << "\n  Merge Sort Nama Pelanggan (A-Z) selesai.\n" << R;
     } else {
         quickSortHarga(daftarTransaksi, 0, jumlahTransaksi - 1);
