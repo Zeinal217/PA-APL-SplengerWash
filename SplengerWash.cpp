@@ -6,7 +6,6 @@
 #include <fstream>
 #include <ctime>
 #include <cctype>
-#include <cstdlib>
 #include <stdexcept>
 #include <thread>
 #include <chrono> 
@@ -15,21 +14,16 @@
 #endif
 using namespace std;
 
-const string R  = "\033[0m";
-const string B  = "\033[1m";
-const string DM = "\033[2m";
-const string IT = "\033[3m";
-const string RD = "\033[31m";
-const string GR = "\033[32m";
-const string YL = "\033[33m";
-const string BL = "\033[34m";
-const string MG = "\033[35m";
-const string CYN = "\033[36m";
-const string WH = "\033[37m";
-const string BGR = "\033[41m";
-const string BGG = "\033[42m";
-const string BGY = "\033[43m";
-const string BGC = "\033[46m";
+const string R  = "\033[0m"; // Reset
+const string B  = "\033[1m"; // Bold
+const string DM = "\033[2m"; //Dim (redup)
+const string IT = "\033[3m"; // Italic miring)
+const string RD = "\033[31m"; // Red
+const string GR = "\033[32m"; // Green
+const string YL = "\033[33m"; // Yellow
+const string BL = "\033[34m"; // Blue
+const string MG = "\033[35m"; // Magenta
+const string CYN = "\033[36m"; // Cyan
 
 struct Layanan {
     int idLayanan;
@@ -64,6 +58,7 @@ struct Transaksi {
     string tglOrder;
     string tglSelesai;
     string namaWalkin;
+    string namaPelanggan;
 };
 
 const int MAKS_LAYANAN = 20;
@@ -132,26 +127,14 @@ void jedaLayar() {
 void tampilkanLoading() {
     const int lebarBar = 40;
     const int durasiStep = 40;
-
-    cout << "\n";
-    cout << GR << "  Memuat data sistem " << R;
+    cout << "\n" << GR << "  Memuat data sistem " << R;
     cout.flush();
-
     for (int i = 0; i <= lebarBar; ++i) {
         cout << "\r  Memuat data sistem " << GR << "[";
-
-        for (int j = 0; j < lebarBar; ++j) {
-            if (j < i)
-                cout << "█";
-            else
-                cout << " ";
-        }
-        cout << "]" << R;
-        cout.flush();
-
+        for (int j = 0; j < lebarBar; ++j) cout << (j < i ? "█" : " ");
+        cout << "]" << R; cout.flush();
         this_thread::sleep_for(chrono::milliseconds(durasiStep));
     }
-
     cout << " Selesai!\n";
 }
 
@@ -311,10 +294,6 @@ double inputBerat(const string& text) {
     }
 }
 
-double inputDesimalPositif(const string& text) {
-    return inputBerat(text);
-}
-
 int cariIdxLayanan(int id) {
     for (int i = 0; i < jumlahLayanan; i++)
         if (daftarLayanan[i].idLayanan == id) return i;
@@ -346,10 +325,12 @@ string getNamaLayanan(int id) {
 }
 
 string getNamaAktual(Transaksi trx) {
-    if (trx.namaWalkin != "") {
-        return trx.namaWalkin; 
+    if (!trx.namaPelanggan.empty()) {
+        return trx.namaPelanggan;
     }
-    
+    if (!trx.namaWalkin.empty()) {
+        return trx.namaWalkin;
+    }
     for (int i = 0; i < jumlahPelanggan; i++) {
         if (daftarPelanggan[i].idPelanggan == trx.idPelanggan) {
             return daftarPelanggan[i].nama;
@@ -357,8 +338,6 @@ string getNamaAktual(Transaksi trx) {
     }
     return "-";
 }
-
-string warnaStatus(const string& s) { return s; }
 
 string tanggalHariIni() {
     time_t now = time(nullptr);
@@ -410,6 +389,7 @@ void simpanData() {
                 fT << daftarTransaksi[i].tglOrder    << "\n";
                 fT << daftarTransaksi[i].tglSelesai  << "\n";
                 fT << daftarTransaksi[i].namaWalkin  << "\n";
+                fT << daftarTransaksi[i].namaPelanggan << "\n";
             }
             fT.close();
         }
@@ -479,8 +459,8 @@ void muatData() {
                 getline(fT, daftarTransaksi[i].statusBayar);
                 getline(fT, daftarTransaksi[i].tglOrder);
                 getline(fT, daftarTransaksi[i].tglSelesai);
-                if (fT.peek() != EOF) getline(fT, daftarTransaksi[i].namaWalkin);
-                else daftarTransaksi[i].namaWalkin = "";
+                if (fT.peek() != EOF) getline(fT, daftarTransaksi[i].namaWalkin); else daftarTransaksi[i].namaWalkin = "";
+                if (fT.peek() != EOF) getline(fT, daftarTransaksi[i].namaPelanggan); else daftarTransaksi[i].namaPelanggan = "";
             }
             fT.close();
         }
@@ -491,15 +471,29 @@ void muatData() {
 
 void tampilkanStruk(int idx) {
     if (idx < 0 || idx >= jumlahTransaksi) return;
-    cout << "\n=== STRUK ===\n";
-    cout << "ID : " << daftarTransaksi[idx].idTransaksi << endl;
-    if (!daftarTransaksi[idx].namaWalkin.empty()) {
-        cout << "Pelanggan : " << daftarTransaksi[idx].namaWalkin << " (Walk-in)" << endl;
-    } else {
-        cout << "Pelanggan : " << getNamaPelanggan(daftarTransaksi[idx].idPelanggan) << endl;
+    const Transaksi& trx = daftarTransaksi[idx];
+    
+    cout << "\n";
+    cout << B << "  ╔══════════════════════════════════════╗\n" << R;
+    cout << B << "  ║" << R << "  SplengerWash - Struk Transaksi      " << B << "║\n" << R;
+    cout << B << "  ╚══════════════════════════════════════╝\n" << R;
+    cout << "\n";
+    
+    cout << left;
+    cout << "  " << B << "ID Transaksi" << R << " : " << trx.idTransaksi << "\n";
+    cout << "  " << B << "No. Antrian" << R << "  : #" << trx.noAntrian << "\n";
+    cout << "  " << B << "Pelanggan" << R << "    : " << getNamaAktual(trx) << "\n";
+    cout << "  " << B << "Layanan" << R << "      : " << getNamaLayanan(trx.idLayanan) << "\n";
+    cout << "  " << B << "Berat" << R << "        : " << fixed << setprecision(2) << trx.berat << " kg\n";
+    cout << "  " << B << "Harga Total" << R << "  : " << GR << B << "Rp " << trx.hargaTotal << R << "\n";
+    cout << "  " << B << "Status" << R << "       : " << trx.status << "\n";
+    cout << "  " << B << "Status Bayar" << R << " : " << trx.statusBayar << "\n";
+    cout << "  " << B << "Tgl Order" << R << "    : " << trx.tglOrder << "\n";
+    if (!trx.tglSelesai.empty()) {
+        cout << "  " << B << "Tgl Selesai" << R << "  : " << trx.tglSelesai << "\n";
     }
-    cout << "Layanan : " << getNamaLayanan(daftarTransaksi[idx].idLayanan) << endl;
-    cout << "Status : " << daftarTransaksi[idx].status << endl;
+    cout << "\n";
+    cout << B << "  ═══════════════════════════════════════\n" << R;
 }
 
 void lihatSemuaLayanan() {
@@ -529,7 +523,7 @@ void lihatSemuaLayanan() {
 bool loginAdmin() {
     cout << "" << endl;
     cout << MG << B << "  LOGIN ADMIN\n" << R;
-    cout << RD << "  (Ketik 0 untuk batal login)\n" << R;
+    cout << RD << "  (Ketik 0 untuk batal)\n" << R;
     cout << "" << endl;
     loginSebagaiAdmin = false;
     idxPelangganAktif = -1;
@@ -538,29 +532,29 @@ bool loginAdmin() {
         string u, p;
         cout << "Username : ";
         getline(cin, u);
-        if (u == "0") { cout << YL << "  Login dibatalkan.\n" << R; return false; }
-        if (hasLeadingTrailingSpace(u)) { cout << RD << "  Username tidak boleh memiliki spasi di awal/akhir!\n" << R; continue; }
+        if (u == "0") { tampilkanPesan("info", "Login dibatalkan."); return false; }
+        if (hasLeadingTrailingSpace(u)) { tampilkanPesan("error", "Username tidak boleh memiliki spasi di awal/akhir!"); continue; }
         u = trim(u);
         cout << "Password : ";
         getline(cin, p);
-        if (p == "0") { cout << YL << "  Login dibatalkan.\n" << R; return false; }
-        if (hasLeadingTrailingSpace(p)) { cout << RD << "  Password tidak boleh memiliki spasi di awal/akhir!\n" << R; continue; }
+        if (p == "0") { tampilkanPesan("info", "Login dibatalkan."); return false; }
+        if (hasLeadingTrailingSpace(p)) { tampilkanPesan("error", "Password tidak boleh memiliki spasi di awal/akhir!"); continue; }
         p = trim(p);
         if (u == dataAdmin.username && p == dataAdmin.password) {
             loginSebagaiAdmin = true;
             return true;
         }
         ++percobaan;
-        cout << "Login gagal! Sisa percobaan: " << (3 - percobaan) << "\n";
+        tampilkanPesan("error", "Login gagal! Sisa percobaan: " + to_string(3 - percobaan));
     }
-    cout << "3x gagal. Kembali ke menu utama.\n";
+    tampilkanPesan("error", "3x gagal. Kembali ke menu utama.");
     return false;
 }
 
 bool loginPelanggan() {
     cout << "" << endl;
     cout << MG << B << "  LOGIN PELANGGAN\n" << R;
-    cout << RD << "  (Ketik 0 untuk batal login)\n" << R;
+    cout << RD << "  (Ketik 0 untuk batal)\n" << R;
     cout << "" << endl;
     loginSebagaiAdmin = false;
     idxPelangganAktif = -1;
@@ -569,13 +563,13 @@ bool loginPelanggan() {
         string u, p;
         cout << "Username : ";
         getline(cin, u);
-        if (u == "0") { cout << YL << "  Login dibatalkan.\n" << R; return false; }
-        if (hasLeadingTrailingSpace(u)) { cout << RD << "  Username tidak boleh memiliki spasi di awal/akhir!\n" << R; continue; }
+        if (u == "0") { tampilkanPesan("info", "Login dibatalkan."); return false; }
+        if (hasLeadingTrailingSpace(u)) { tampilkanPesan("error", "Username tidak boleh memiliki spasi di awal/akhir!"); continue; }
         u = trim(u);
         cout << "Password : ";
         getline(cin, p);
-        if (p == "0") { cout << YL << "  Login dibatalkan.\n" << R; return false; }
-        if (hasLeadingTrailingSpace(p)) { cout << RD << "  Password tidak boleh memiliki spasi di awal/akhir!\n" << R; continue; }
+        if (p == "0") { tampilkanPesan("info", "Login dibatalkan."); return false; }
+        if (hasLeadingTrailingSpace(p)) { tampilkanPesan("error", "Password tidak boleh memiliki spasi di awal/akhir!"); continue; }
         p = trim(p);
         for (int i = 0; i < jumlahPelanggan; i++) {
             if (daftarPelanggan[i].username == u && daftarPelanggan[i].password == p) {
@@ -584,58 +578,57 @@ bool loginPelanggan() {
             }
         }
         ++percobaan;
-        cout << "Login gagal! Sisa percobaan: " << (3 - percobaan) << "\n";
+        tampilkanPesan("error", "Login gagal! Sisa percobaan: " + to_string(3 - percobaan));
     }
-    cout << "3x gagal. Kembali ke menu utama.\n";
+    tampilkanPesan("error", "3x gagal. Kembali ke menu utama.");
     return false;
 }
 
 void daftarPelanggan_() {
     cout << "" << endl;
     cout << MG << B << "  DAFTAR PELANGGAN BARU\n" << R;
-    cout << RD << "  (Ketik 0 untuk batal mendaftar)\n" << R;
+    cout << RD << "  (Ketik 0 untuk batal)\n" << R;
     cout << "" << endl;
     if (jumlahPelanggan >= MAKS_PELANGGAN) {
         cout << RD << "  Kapasitas pengguna penuh.\n" << R;
         return;
     }
     string nama = inputNama("  Nama lengkap  : ");
-    if (nama == "0") { cout << YL << "  Pendaftaran dibatalkan.\n" << R; return; }
+    if (nama == "0") { tampilkanPesan("info", "Pendaftaran dibatalkan."); return; }
 
     string user;
     while (true) {
         cout << "  Username (4-20 karakter, huruf/angka): ";
         getline(cin, user);
-        if (user == "0") { cout << YL << "  Pendaftaran dibatalkan.\n" << R; return; }
-        if (hasLeadingTrailingSpace(user)) { cout << RD << "  Username tidak boleh memiliki spasi di awal/akhir!\n" << R; continue; }
+        if (user == "0") { tampilkanPesan("info", "Pendaftaran dibatalkan."); return; }
+        if (hasLeadingTrailingSpace(user)) { tampilkanPesan("error", "Username tidak boleh memiliki spasi di awal/akhir!"); continue; }
         user = trim(user);
-        if (user.empty())          { cout << RD << "  Username tidak boleh kosong!\n" << R; continue; }
-        if (user.length() < 4)     { cout << RD << "  Username minimal 4 karakter!\n" << R; continue; }
-        if (user.length() > 20)    { cout << RD << "  Username maksimal 20 karakter!\n" << R; continue; }
-        if (!hanyaHurufAngka(user)){ cout << RD << "  Username hanya boleh huruf dan angka!\n" << R; continue; }
-        if (user == dataAdmin.username) { cout << RD << "  Username sudah digunakan, coba lain.\n" << R; continue; }
+        if (user.empty())          { tampilkanPesan("error", "Username tidak boleh kosong!"); continue; }
+        if (user.length() < 4)     { tampilkanPesan("error", "Username minimal 4 karakter!"); continue; }
+        if (user.length() > 20)    { tampilkanPesan("error", "Username maksimal 20 karakter!"); continue; }
+        if (!hanyaHurufAngka(user)){ tampilkanPesan("error", "Username hanya boleh huruf dan angka!"); continue; }
+        if (user == dataAdmin.username) { tampilkanPesan("error", "Username sudah digunakan, coba lain."); continue; }
         bool ada = false;
         for (int i = 0; i < jumlahPelanggan; i++)
             if (daftarPelanggan[i].username == user) { ada = true; break; }
-        if (ada) { cout << RD << "  Username sudah digunakan, coba lain.\n" << R; continue; }
+        if (ada) { tampilkanPesan("error", "Username sudah digunakan, coba lain."); continue; }
         break;
     }
     string pass;
     while (true) {
         cout << "  Password (6-30 karakter): ";
         getline(cin, pass);
-        if (pass == "0") { cout << YL << "  Pendaftaran dibatalkan.\n" << R; return; }
-        if (hasLeadingTrailingSpace(pass)) { cout << RD << "  Password tidak boleh memiliki spasi di awal/akhir!\n" << R; continue; }
+        if (pass == "0") { tampilkanPesan("info", "Pendaftaran dibatalkan."); return; }
+        if (hasLeadingTrailingSpace(pass)) { tampilkanPesan("error", "Password tidak boleh memiliki spasi di awal/akhir!"); continue; }
         pass = trim(pass);
-        if (pass.empty())       { cout << RD << "  Password tidak boleh kosong!\n" << R; continue; }
-        if (pass.length() < 6)  { cout << RD << "  Password minimal 6 karakter!\n" << R; continue; }
-        if (pass.length() > 30) { cout << RD << "  Password maksimal 30 karakter!\n" << R; continue; }
+        if (pass.empty())       { tampilkanPesan("error", "Password tidak boleh kosong!"); continue; }
+        if (pass.length() < 6)  { tampilkanPesan("error", "Password minimal 6 karakter!"); continue; }
+        if (pass.length() > 30) { tampilkanPesan("error", "Password maksimal 30 karakter!"); continue; }
         break;
     }
     daftarPelanggan[jumlahPelanggan] = {nextIdPelanggan++, nama, user, pass};
     ++jumlahPelanggan;
     simpanData();
-    cout << GR << "\n  Registrasi berhasil! Silakan login.\n" << R;
 }
 
 void tambahLayananBaru() {
@@ -649,6 +642,7 @@ void tambahLayananBaru() {
     while (true) {
         cout << "  Nama layanan (huruf saja, 3-50 karakter): ";
         getline(cin, nama);
+        if (nama == "0") { tampilkanPesan("info", "Penambahan layanan dibatalkan."); return; }
         if (hasLeadingTrailingSpace(nama)) { tampilkanPesan("error", "Nama layanan tidak boleh memiliki spasi di awal/akhir!"); continue; }
         nama = trim(nama);
         if (nama.empty())        { tampilkanPesan("error", "Nama tidak boleh kosong!"); continue; }
@@ -815,36 +809,40 @@ void menuKelolalayanan() {
 
 void lihatSemuaOrder() {
     cout << CYN << B << "  SEMUA ORDER\n" << R;
-    garis('=', 62);
+    garis('=', 115);
     if (jumlahTransaksi == 0) {
         tampilkanPesan("info", "Belum ada order masuk.");
         return;
     }
     cout << B << "  " << left
-        << setw(7)  << "Antri"
+        << setw(6)  << "Antri"
         << setw(7)  << "ID"
-        << setw(14) << "Pelanggan"
-        << setw(22) << "Layanan"
+        << setw(18) << "Pelanggan"
+        << setw(30) << "Layanan"
         << setw(8)  << "Berat"
         << setw(12) << "Harga"
         << setw(12) << "Status"
-        << "Bayar" << R << "\n";
-    garis('-', 62);
+        << setw(12) << "Bayar"
+        << "TglOrder" << R << "\n";
+    garis('-', 115);
     for (int i = 0; i < jumlahTransaksi; i++) {
         Transaksi& t = daftarTransaksi[i];
-        string beratStr  = (t.berat == 0)      ? DM + string("-") + R : to_string(t.berat).substr(0,4);
+        string beratStr  = (t.berat == 0) ? DM + string("-") + R : (fixed, stringstream() << setprecision(2) << t.berat).str() + " kg";
         string hargaStr  = (t.hargaTotal == 0) ? DM + string("-") + R : "Rp " + to_string(t.hargaTotal);
-        string namaPel = t.namaWalkin.empty() ? getNamaPelanggan(t.idPelanggan) : t.namaWalkin + "*";
-        cout << "  " << YL << setw(5) << ("#" + to_string(t.noAntrian)) << R << "  "
+        string namaPel   = getNamaAktual(t);
+        string namaLay   = getNamaLayanan(t.idLayanan);
+        
+        cout << "  " << YL << setw(4) << ("#" + to_string(t.noAntrian)) << R << "  "
             << left << setw(7)  << t.idTransaksi
-            << setw(14) << namaPel.substr(0,12)
-            << setw(22) << getNamaLayanan(t.idLayanan).substr(0, 20)
+            << setw(18) << namaPel.substr(0,16)
+            << setw(30) << namaLay.substr(0, 28)
             << setw(8)  << beratStr
             << setw(12) << hargaStr
-            << setw(12) << warnaStatus(t.status)
-            << warnaStatus(t.statusBayar) << "\n";
+            << setw(12) << t.status
+            << setw(12) << t.statusBayar
+            << t.tglOrder << "\n";
     }
-    garis('=', 62);
+    garis('=', 115);
     cout << DM << "  Total: " << jumlahTransaksi << " order\n" << R;
 }
 
@@ -857,6 +855,7 @@ void tambahTransaksiManual() {
     cout << "    " << CYN << "1" << R << ". Pelanggan terdaftar\n";
     cout << "    " << CYN << "2" << R << ". Walk-in (tanpa akun)\n";
     cout << RD << "  (Ketik 0 untuk batal)\n" << R;
+    cout << "" << endl;
     int tipe = inputAngkaBatas("  Pilih (1/2): ", 0, 2);
     int idPel = -1, idxPel = -1;
     string namaWalkin = "";
@@ -892,13 +891,13 @@ void tambahTransaksiManual() {
         if (idxLay == -1)
             tampilkanPesan("error", "Layanan dengan ID " + to_string(idLay) + " tidak ditemukan!");
     }
-    double berat = inputDesimalPositif("  Berat (kg/pcs): ");
+    double berat = inputBerat("  Berat (kg/pcs): ");
     long long harga = static_cast<long long>(berat * daftarLayanan[idxLay].harga);
     cout << "\n" << DM << "  Ringkasan transaksi:\n" << R;
     if (tipe == 1) cout << "  Pelanggan : " << daftarPelanggan[idxPel].nama << "\n";
     else cout << "  Pelanggan : " << namaWalkin << " (Walk-in)\n";
     cout << "  Layanan   : " << daftarLayanan[idxLay].namaLayanan << "\n";
-    cout << "  Berat     : " << berat << "\n";
+    cout << "  Berat     : " << fixed << setprecision(2) << berat << " kg\n";
     cout << "  Total     : " << GR << B << "Rp " << harga << R << "\n\n";
     if (!konfirmasi("  Konfirmasi tambah transaksi?")) {
         tampilkanPesan("info", "Transaksi dibatalkan.");
@@ -916,6 +915,7 @@ void tambahTransaksiManual() {
     trx.tglOrder     = tanggalHariIni();
     trx.tglSelesai   = "";
     trx.namaWalkin   = (tipe == 2) ? namaWalkin : "";
+    trx.namaPelanggan= (tipe == 1) ? daftarPelanggan[idxPel].nama : namaWalkin;
     daftarTransaksi[jumlahTransaksi++] = trx;
     simpanData();
     tampilkanPesan("sukses", "Transaksi berhasil ditambahkan!");
@@ -928,19 +928,25 @@ void updateStatusOrder() {
         return;
     }
     lihatSemuaOrder();
+    cout << "\n" << RD << "  (Ketik 0 untuk batal)\n" << R;
     int id, idx = -1;
     while (idx == -1) {
-        id  = inputAngka("  Masukkan ID Transaksi (0=batal): ");
+        id  = inputAngka("  Masukkan ID Transaksi: ");
         if (id == 0) return;
         idx = cariIdxTransaksi(id);
         if (idx == -1) tampilkanPesan("error", "ID transaksi " + to_string(id) + " tidak ditemukan!");
     }
     Transaksi& t = daftarTransaksi[idx];
-    cout << "\n  Status saat ini: " << warnaStatus(t.status) << "\n\n";
+    cout << "\n  Detail Order:\n";
+    cout << "  ID         : " << t.idTransaksi << "\n";
+    cout << "  Tgl Order  : " << t.tglOrder << "\n";
+    if (!t.tglSelesai.empty()) cout << "  Tgl Selesai: " << t.tglSelesai << "\n";
+    cout << "  Status     : " << t.status << "\n\n";
+    
     if (t.status == "Menunggu") {
         int idxL = cariIdxLayanan(t.idLayanan);
         cout << "  Layanan : " << (idxL >= 0 ? daftarLayanan[idxL].namaLayanan : "-") << "\n";
-        double berat = inputDesimalPositif("  Input berat (kg/pcs): ");
+        double berat = inputBerat("  Input berat (kg/pcs): ");
         t.berat      = berat;
         t.hargaTotal = (idxL >= 0) ? static_cast<long long>(berat * daftarLayanan[idxL].harga) : 0;
         t.status     = "Diproses";
@@ -968,9 +974,10 @@ void hapusCancelOrder() {
         return;
     }
     lihatSemuaOrder();
+    cout << "\n" << RD << "  (Ketik 0 untuk batal)\n" << R;
     int id, idx = -1;
     while (true) {
-        id  = inputAngka("  Masukkan ID Transaksi (0=batal): ");
+        id  = inputAngka("  Masukkan ID Transaksi: ");
         if (id == 0) return;
         idx = cariIdxTransaksi(id);
         if (idx != -1) break;
@@ -978,7 +985,7 @@ void hapusCancelOrder() {
     }
     cout << "\n  Order yang akan dibatalkan:\n";
     cout << "  ID     : " << daftarTransaksi[idx].idTransaksi << "\n";
-    cout << "  Status : " << warnaStatus(daftarTransaksi[idx].status) << "\n\n";
+    cout << "  Status : " << daftarTransaksi[idx].status << "\n\n";
     if (!konfirmasi("  Yakin ingin membatalkan order ini?")) {
         tampilkanPesan("info", "Pembatalan dibatalkan.");
         return;
@@ -999,7 +1006,7 @@ void menuKelolaTransaksi() {
         cout << "  " << CYN << "1" << R << ". Lihat Semua Order\n";
         cout << "  " << CYN << "2" << R << ". Tambah Transaksi Manual (Walk-in)\n";
         cout << "  " << CYN << "3" << R << ". Update Status Order\n";
-        cout << "  " << CYN << "4" << R << ". Hapus / Cancel Order\n";
+        cout << "  " << CYN << "4" << R << ". Cancel Order\n";
         cout << "  " << RD << "0" << R << ". Kembali\n";
         garis();
         int p = inputAngka("Pilih: ");
@@ -1070,11 +1077,11 @@ void quickSortHarga(Transaksi* arr, int lo, int hi) {
 
 void tampilkanRingkasTransaksi(Transaksi* arr, int jumlah) {
     cout << B << left
-         << setw(7) << " Antri"
-         << setw(7) << "ID"
-         << setw(18) << "Nama Pelanggan"
-         << setw(14) << "Harga"
-         << "Status" << R << "\n";
+        << setw(7) << " Antri"
+        << setw(7) << "ID"
+        << setw(18) << "Nama Pelanggan"
+        << setw(14) << "Harga"
+        << "Status" << R << "\n";
     garis();
     for (int i = 0; i < jumlah; i++) {
         string hargaStr = (arr[i].hargaTotal == 0)
@@ -1085,7 +1092,7 @@ void tampilkanRingkasTransaksi(Transaksi* arr, int jumlah) {
             << setw(7)  << arr[i].idTransaksi
             << setw(18) << getNamaAktual(arr[i])
             << setw(14) << hargaStr
-            << warnaStatus(arr[i].status) << "\n";
+            << arr[i].status << "\n";
     }
     garis();
 }
@@ -1106,18 +1113,23 @@ void sortingData() {
         if (p == 1 || p == 2) break;
         cout << RD << "  Pilihan tidak valid!\n" << R;
     }
-    cout << "\n" << YL << "  DATA SEBELUM SORTING:\n" << R;
+
+    Transaksi temp[MAKS_TRANSAKSI];
+    for (int i = 0; i < jumlahTransaksi; i++) temp[i] = daftarTransaksi[i];
+    cout << "\n" << YL << "  DATA ASLI (URUTAN MASUK):\n" << R;
     tampilkanRingkasTransaksi(daftarTransaksi, jumlahTransaksi);
+
     if (p == 1) {
-        mergeSortNama(daftarTransaksi, 0, jumlahTransaksi - 1);
+        mergeSortNama(temp, 0, jumlahTransaksi - 1);
         cout << GR << "\n  Merge Sort Nama Pelanggan (A-Z) selesai.\n" << R;
     } else {
-        quickSortHarga(daftarTransaksi, 0, jumlahTransaksi - 1);
+        quickSortHarga(temp, 0, jumlahTransaksi - 1);
         cout << GR << "\n  Quick Sort Harga Total (Tertinggi ke Terendah) selesai.\n" << R;
     }
-    cout << "\n" << GR << "  DATA SESUDAH SORTING:\n" << R;
-    tampilkanRingkasTransaksi(daftarTransaksi, jumlahTransaksi);
-    simpanData();
+
+    cout << "\n" << GR << "  HASIL SORTING (HANYA TAMPILAN):\n" << R;
+    tampilkanRingkasTransaksi(temp, jumlahTransaksi);
+    cout << CYN << "\n  [i] Sorting hanya untuk keperluan tampilan. Data asli tidak diubah.\n" << R;
 }
 
 int binarySearchId(int targetId) {
@@ -1145,18 +1157,43 @@ void linearSearchNama(const string& nama) {
     string namaLow = nama;
     for (char& c : namaLow) c = tolower(static_cast<unsigned char>(c));
     bool ada = false;
-    cout << "\n" << CYN << "  Hasil pencarian nama '" << nama << "':\n" << R;
-    garis();
+    cout << "\n" << CYN << "  Hasil pencarian nama mengandung '" << nama << "':\n" << R;
+    garis('=', 100);
+    cout << B << left
+        << setw(6)  << "Antri"
+        << setw(7)  << "ID"
+        << setw(18) << "Nama Pelanggan"
+        << setw(25) << "Layanan"
+        << setw(8)  << "Berat"
+        << setw(12) << "Harga"
+        << setw(10) << "Status"
+        << setw(10) << "Bayar"
+        << "TglOrder" << R << "\n";
+    garis('-', 100);
     for (int i = 0; i < jumlahTransaksi; i++) {
-        string np    = daftarTransaksi[i].namaWalkin.empty() ? getNamaPelanggan(daftarTransaksi[i].idPelanggan) : daftarTransaksi[i].namaWalkin;
+        const Transaksi& t = daftarTransaksi[i];
+        string np    = getNamaAktual(t);
         string npLow = np;
         for (char& c : npLow) c = tolower(static_cast<unsigned char>(c));
+        
         if (npLow.find(namaLow) != string::npos) {
-            tampilkanStruk(i);
+            string beratStr  = (t.berat == 0) ? "-" : (fixed, stringstream() << setprecision(2) << t.berat).str() + " kg";
+            string hargaStr  = (t.hargaTotal == 0) ? "-" : "Rp " + to_string(t.hargaTotal);
+            cout << left
+                << setw(6) << ("#"+to_string(t.noAntrian))
+                << setw(7) << t.idTransaksi
+                << setw(18) << np.substr(0,16)
+                << setw(25) << getNamaLayanan(t.idLayanan).substr(0,23)
+                << setw(8) << beratStr
+                << setw(12) << hargaStr
+                << setw(10) << t.status
+                << setw(10) << t.statusBayar
+                << t.tglOrder << "\n";
             ada = true;
         }
     }
-    if (!ada) cout << RD << "  Nama pelanggan tidak ditemukan.\n" << R;
+    garis('=', 100);
+    if (!ada) tampilkanPesan("info", "Tidak ada transaksi yang ditemukan dengan nama tersebut.");
 }
 
 void cariTransaksi() {
@@ -1174,13 +1211,13 @@ void cariTransaksi() {
     if (p == 1) {
         int id  = inputAngka("  Masukkan ID Transaksi: ");
         int idx = binarySearchId(id);
-        if (idx == -1) cout << RD << "  ID transaksi tidak ditemukan.\n" << R;
+        if (idx == -1) tampilkanPesan("info", "Transaksi dengan ID " + to_string(id) + " tidak ditemukan!");
         else {
             cout << GR << "  Transaksi ditemukan!\n" << R;
             tampilkanStruk(idx);
         }
     } else {
-        string nama = inputTeks("  Masukkan nama pelanggan: ");
+        string nama = inputTeks("  Masukkan nama pelanggan (cukup ketik sebagian): ");
         linearSearchNama(nama);
     }
 }
@@ -1227,8 +1264,14 @@ void buatOrderBaru() {
     cout << "\n";
     int idLay, idxLay = -1;
     while (idxLay == -1) {
+        cout << RD << "  (Ketik 0 untuk batal)\n" << R;
+        cout << "" << endl;
         idLay  = inputAngka("  Pilih ID Layanan: ");
         idxLay = cariIdxLayanan(idLay);
+        if (idLay == 0) {
+            tampilkanPesan("info", "Pembuatan order dibatalkan.");
+            return;
+        }
         if (idxLay == -1) cout << RD << "  Layanan tidak ditemukan, ulangi.\n" << R;
     }
     Layanan& l = daftarLayanan[idxLay];
@@ -1244,7 +1287,7 @@ void buatOrderBaru() {
     string k; getline(cin, k);
     k = trim(k);
     if (k != "y" && k != "Y") {
-        cout << DM << "  Order dibatalkan.\n" << R;
+        tampilkanPesan("info", "Order dibatalkan.");
         return;
     }
     Transaksi trx;
@@ -1259,9 +1302,10 @@ void buatOrderBaru() {
     trx.tglOrder    = tanggalHariIni();
     trx.tglSelesai  = "";
     trx.namaWalkin  = "";
-    daftarTransaksi[jumlahTransaksi++] = trx;
+    trx.namaPelanggan = daftarPelanggan[idxPelangganAktif].nama;
+    daftarTransaksi[jumlahTransaksi++] = trx; 
     simpanData();
-    cout << GR << "\n  Order berhasil dibuat!\n" << R;
+    tampilkanPesan("sukses", "Order berhasil dibuat! Nomor antrian: #" + to_string(trx.noAntrian));
     cout << "  Nomor Antrian : " << YL << B << "#" << trx.noAntrian << R << "\n";
     cout << "  ID Order      : " << trx.idTransaksi << "\n";
     cout << DM << "  Silakan antar pakaian ke toko.\n" << R;
@@ -1274,17 +1318,19 @@ void lihatOrderStrukSaya() {
     bool ada = false;
     cout << B << left
         << setw(7)  << "  ID"
-        << setw(32) << "Layanan"
-        << setw(14) << "Status"
+        << setw(30) << "Layanan"
+        << setw(12) << "TglOrder"
+        << setw(12) << "Status"
         << "Bayar" << R << "\n";
     garis();
     for (int i = 0; i < jumlahTransaksi; i++) {
         if (daftarTransaksi[i].idPelanggan == idPel) {
             cout << "  " << YL << setw(5) << daftarTransaksi[i].idTransaksi << R << "  "
                 << left
-                << setw(32) << getNamaLayanan(daftarTransaksi[i].idLayanan)
-                << setw(14) << warnaStatus(daftarTransaksi[i].status)
-                << warnaStatus(daftarTransaksi[i].statusBayar) << "\n";
+                << setw(30) << getNamaLayanan(daftarTransaksi[i].idLayanan)
+                << setw(12) << daftarTransaksi[i].tglOrder
+                << setw(12) << daftarTransaksi[i].status
+                << daftarTransaksi[i].statusBayar << "\n";
             ada = true;
         }
     }
@@ -1293,7 +1339,9 @@ void lihatOrderStrukSaya() {
         return;
     }
     garis();
-    int id = inputAngka("  Masukkan ID untuk lihat struk (0=batal): ");
+    cout << RD << "  (Ketik 0 untuk batal)\n" << R;
+    cout << "" << endl;
+    int id = inputAngka("  Masukkan ID untuk lihat struk: ");
     if (id == 0) return;
     int idx = cariIdxTransaksi(id);
     if (idx == -1 || daftarTransaksi[idx].idPelanggan != idPel) {
@@ -1318,7 +1366,7 @@ void batalkanOrder() {
             cout << "  " << YL << setw(5) << daftarTransaksi[i].idTransaksi << R << "  "
                 << left
                 << setw(32) << getNamaLayanan(daftarTransaksi[i].idLayanan)
-                << warnaStatus(daftarTransaksi[i].status) << "\n";
+                << daftarTransaksi[i].status << "\n";
             ada = true;
         }
     }
@@ -1327,16 +1375,17 @@ void batalkanOrder() {
         return;
     }
     garis();
+    cout << RD << "  (Ketik 0 untuk batal)\n" << R;
     int id, idx = -1;
     while (true) {
-        id = inputAngka("  Masukkan ID order yang dibatalkan (0=batal): ");
+        id = inputAngka("  Masukkan ID order yang dibatalkan: ");
         if (id == 0) return;
         idx = cariIdxTransaksi(id);
         if (idx != -1 && daftarTransaksi[idx].idPelanggan == idPel) break;
         tampilkanPesan("error", "Transaksi tidak ditemukan!");
     }
     if (daftarTransaksi[idx].status != "Menunggu") {
-        cout << RD << "  Order sudah diproses, tidak bisa dibatalkan.\n" << R;
+        tampilkanPesan("error", "Order sudah diproses, tidak bisa dibatalkan.");
         return;
     }
     cout << CYN << "  Yakin batalkan order ini? (y/n): " << R;
@@ -1348,7 +1397,7 @@ void batalkanOrder() {
     }
     daftarTransaksi[idx].status = "Dibatalkan";
     simpanData();
-    cout << GR << "  Order berhasil dibatalkan.\n" << R;
+    tampilkanPesan("sukses", "Order berhasil dibatalkan.");
 }
 
 void kelolaPelanggan() {
@@ -1389,8 +1438,10 @@ void kelolaPelanggan() {
                     << ". " << daftarPelanggan[i].nama
                     << " (" << daftarPelanggan[i].username << ")\n";
             garis();
-            int id = inputAngka("  Masukkan ID pelanggan yang dihapus (0=batal): ");
-            if (id == 0) continue;
+            cout << RD << "  (Ketik 0 untuk batal)\n" << R;
+            cout << "" << endl;
+            int id = inputAngka("  Masukkan ID pelanggan yang dihapus: ");
+            if (id == 0) jedaLayar(); continue;
             int idx = cariIdxPelanggan(id);
             if (idx == -1) { tampilkanPesan("error", "ID pelanggan tidak ditemukan!"); jedaLayar(); continue; }
             cout << "\n  Hapus akun: " << RD << B << daftarPelanggan[idx].nama << R << "\n";
@@ -1531,8 +1582,15 @@ int main() {
                 break;
             case 3:
                 bersihkanLayar(); tampilkanHeader();
-                daftarPelanggan_();
-                jedaLayar();
+                if (jumlahPelanggan >= MAKS_PELANGGAN) {
+                    cout << RD << "  Pendaftaran penuh, hubungi admin.\n" << R;
+                    jedaLayar();
+                } else {
+                    daftarPelanggan_();
+                    tampilkanLoading();
+                    tampilkanPesan("sukses", "Pendaftaran berhasil! Silakan login.");
+                    jedaLayar();
+                }
                 break;
             case 0:
                 cout << GR << "\n  Terima kasih!\n" << R;
