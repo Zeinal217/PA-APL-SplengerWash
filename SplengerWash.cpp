@@ -863,6 +863,7 @@ void tambahTransaksiManual() {
     cout << RD << "  (Ketik 0 untuk batal)\n" << R;
     cout << "" << endl;
     int tipe = inputAngkaBatas("  Pilih (1/2): ", 0, 2);
+    bersihkanLayar(); tampilkanHeader();
     int idPel = -1, idxPel = -1;
     string namaWalkin = "";
     if (tipe == 0) {
@@ -1408,8 +1409,11 @@ void batalkanOrder() {
 
 void kelolaPelanggan() {
     bool aktif = true;
+
     while (aktif) {
-        bersihkanLayar(); tampilkanHeader();
+        bersihkanLayar();
+        tampilkanHeader();
+
         cout << MG << B << "  ╔══════════════════════════╗\n";
         cout << "  ║    KELOLA PELANGGAN      ║\n";
         cout << "  ╚══════════════════════════╝\n" << R;
@@ -1418,54 +1422,105 @@ void kelolaPelanggan() {
         cout << "  " << CYN << "2" << R << ". Hapus Akun Pelanggan\n";
         cout << "  " << RD  << "0" << R << ". Kembali\n";
         garis();
+
         int p = inputAngkaBatas("Pilih: ", 0, 2);
-        if (p == 0) { aktif = false; break; }
-        if (p == 1) {
-            bersihkanLayar(); tampilkanHeader();
+
+        if (p == 0) {
+            aktif = false;
+            break;
+        }
+        else if (p == 1) {
+
+            bersihkanLayar();
+            tampilkanHeader();
             cout << MG << "  DAFTAR PELANGGAN\n" << R;
             garis();
-            if (jumlahPelanggan == 0) { cout << DM << "  Belum ada pelanggan.\n" << R; jedaLayar(); continue; }
-            cout << B << left << setw(5) << "  ID" << setw(22) << "Nama"
-                << setw(16) << "Username" << R << "\n";
+
+            if (jumlahPelanggan == 0) {
+                cout << DM << "  Belum ada pelanggan.\n" << R;
+                jedaLayar();
+                continue;
+            }
+            cout << B << left
+                << setw(5)  << "  ID"
+                << setw(22) << "Nama"
+                << setw(16) << "Username"
+                << R << "\n";
             garis();
-            for (int i = 0; i < jumlahPelanggan; i++)
-                cout << "  " << YL << setw(3) << daftarPelanggan[i].idPelanggan << R << "  "
+
+            for (int i = 0; i < jumlahPelanggan; i++) {
+
+                cout << "  "
+                    << YL << setw(3) << daftarPelanggan[i].idPelanggan << R << "  "
                     << left << setw(22) << daftarPelanggan[i].nama
-                    << daftarPelanggan[i].username << "\n";
+                    << daftarPelanggan[i].username
+                    << "\n";
+            }
             garis();
             jedaLayar();
-        } else {
-            bersihkanLayar(); tampilkanHeader();
+        }
+        else if (p == 2) {
+
+            bersihkanLayar();
+            tampilkanHeader();
             cout << RD << B << "  HAPUS AKUN PELANGGAN\n" << R;
             garis();
-            if (jumlahPelanggan == 0) { cout << DM << "  Belum ada pelanggan.\n" << R; jedaLayar(); continue; }
-            for (int i = 0; i < jumlahPelanggan; i++)
-                cout << "  " << YL << daftarPelanggan[i].idPelanggan << R
-                    << ". " << daftarPelanggan[i].nama
+
+            if (jumlahPelanggan == 0) {
+                cout << DM << "  Belum ada pelanggan.\n" << R;
+                jedaLayar();
+                continue;
+            }
+
+            for (int i = 0; i < jumlahPelanggan; i++) {
+
+                cout << "  "
+                    << YL << daftarPelanggan[i].idPelanggan << R
+                    << ". "
+                    << daftarPelanggan[i].nama
                     << " (" << daftarPelanggan[i].username << ")\n";
+            }
             garis();
             cout << RD << "  (Ketik 0 untuk batal)\n" << R;
-            cout << "" << endl;
+            cout << endl;
+
             int id = inputAngka("  Masukkan ID pelanggan yang dihapus: ");
-            if (id == 0) jedaLayar(); continue;
-            int idx = cariIdxPelanggan(id);
-            if (idx == -1) { tampilkanPesan("error", "ID pelanggan tidak ditemukan!"); jedaLayar(); continue; }
-            cout << "\n  Hapus akun: " << RD << B << daftarPelanggan[idx].nama << R << "\n";
-            if (!konfirmasi("  Yakin ingin menghapus akun ini?")) {
-                tampilkanPesan("info", "Penghapusan dibatalkan."); jedaLayar(); continue;
+            if (id == 0) {
+                tampilkanPesan("info", "Penghapusan dibatalkan.");
+                jedaLayar();
+                continue;
             }
-            for (int i = idx; i < jumlahPelanggan - 1; i++)
+
+            int idx = cariIdxPelanggan(id);
+            if (idx == -1) {
+                tampilkanPesan("error", "ID pelanggan tidak ditemukan!");
+                jedaLayar();
+                continue;
+            }
+
+            cout << "\n  Hapus akun: "
+                << RD << B
+                << daftarPelanggan[idx].nama
+                << R << "\n";
+            if (!konfirmasi("  Yakin ingin menghapus akun ini?")) {
+                tampilkanPesan("info", "Penghapusan dibatalkan.");
+                jedaLayar();
+                continue;
+            }
+
+            int idPelHapus = daftarPelanggan[idx].idPelanggan;
+            string namaPelHapus = daftarPelanggan[idx].nama;
+            for (int i = 0; i < jumlahTransaksi; i++) {
+                if (daftarTransaksi[i].idPelanggan == idPelHapus) {
+                    daftarTransaksi[i].namaPelanggan = namaPelHapus;
+                }
+            }
+
+            for (int i = idx; i < jumlahPelanggan - 1; i++) {
                 daftarPelanggan[i] = daftarPelanggan[i + 1];
-            --jumlahPelanggan;
-            if (jumlahPelanggan > 0) {
-                int minId = daftarPelanggan[0].idPelanggan;
-                for (int i = 1; i < jumlahPelanggan; i++)
-                    if (daftarPelanggan[i].idPelanggan < minId) minId = daftarPelanggan[i].idPelanggan;
-                nextIdPelanggan = minId;
-            } else nextIdPelanggan = 1;
-            for (int i = 0; i < jumlahPelanggan; i++)
-                daftarPelanggan[i].idPelanggan = i + 1;
-            if (jumlahPelanggan > 0) nextIdPelanggan = daftarPelanggan[jumlahPelanggan-1].idPelanggan + 1;
+            }
+            jumlahPelanggan--;
+
             simpanData();
             tampilkanPesan("sukses", "Akun pelanggan berhasil dihapus.");
             jedaLayar();
