@@ -547,7 +547,9 @@ bool loginAdmin() {
         ++percobaan;
         tampilkanPesan("error", "Login gagal! Sisa percobaan: " + to_string(3 - percobaan));
     }
+    cout << "" << endl;
     tampilkanPesan("error", "3x gagal. Kembali ke menu utama.");
+    jedaLayar();
     return false;
 }
 
@@ -580,7 +582,9 @@ bool loginPelanggan() {
         ++percobaan;
         tampilkanPesan("error", "Login gagal! Sisa percobaan: " + to_string(3 - percobaan));
     }
+    cout << "" << endl;
     tampilkanPesan("error", "3x gagal. Kembali ke menu utama.");
+    jedaLayar();
     return false;
 }
 
@@ -607,7 +611,7 @@ void daftarPelanggan_() {
         if (user.length() < 4)     { tampilkanPesan("error", "Username minimal 4 karakter!"); continue; }
         if (user.length() > 20)    { tampilkanPesan("error", "Username maksimal 20 karakter!"); continue; }
         if (!hanyaHurufAngka(user)){ tampilkanPesan("error", "Username hanya boleh huruf dan angka!"); continue; }
-        if (user == dataAdmin.username) { tampilkanPesan("error", "Username sudah digunakan, coba lain."); continue; }
+        if (user == dataAdmin.username) { tampilkanPesan("error", "Username sudah digunakan, coba yang lain."); continue; }
         bool ada = false;
         for (int i = 0; i < jumlahPelanggan; i++)
             if (daftarPelanggan[i].username == user) { ada = true; break; }
@@ -629,6 +633,8 @@ void daftarPelanggan_() {
     daftarPelanggan[jumlahPelanggan] = {nextIdPelanggan++, nama, user, pass};
     ++jumlahPelanggan;
     simpanData();
+    tampilkanLoading();
+    tampilkanPesan("sukses", "Pendaftaran berhasil! Silakan login.");
 }
 
 void tambahLayananBaru() {
@@ -1587,8 +1593,6 @@ int main() {
                     jedaLayar();
                 } else {
                     daftarPelanggan_();
-                    tampilkanLoading();
-                    tampilkanPesan("sukses", "Pendaftaran berhasil! Silakan login.");
                     jedaLayar();
                 }
                 break;
