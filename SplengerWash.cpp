@@ -675,6 +675,21 @@ void tambahLayananBaru() {
     cout << "    " << CYN << "2" << R << ". Setrika + Lipat\n";
     int pt = inputAngkaBatas("  Pilih (1/2): ", 1, 2);
     string tambahan = (pt == 1) ? "Tanpa Setrika" : "Setrika + Lipat";
+    bool duplikatPenuh = false;
+    for (int i = 0; i < jumlahLayanan; i++) {
+        if (daftarLayanan[i].namaLayanan == nama &&
+            daftarLayanan[i].jenis == jenis &&
+            daftarLayanan[i].harga == harga &&
+            daftarLayanan[i].estimasi == estimasi &&
+            daftarLayanan[i].tambahan == tambahan) {
+            duplikatPenuh = true;
+            break;
+        }
+    }
+    if (duplikatPenuh) {
+        tampilkanPesan("error", "Layanan dengan spesifikasi yang sama sudah ada!");
+        return;
+    }
     cout << "\n" << DM << "  Ringkasan:\n" << R;
     cout << "  Nama     : " << nama << "\n";
     cout << "  Jenis    : " << jenis << "\n";
@@ -711,6 +726,7 @@ void editLayanan() {
     cout << "  Estimasi : " << l.estimasi << "\n";
     cout << "  Tambahan : " << l.tambahan << "\n\n";
     cout << DM << IT << "  (Tekan Enter untuk melewati / tidak mengubah)\n\n" << R;
+    
     string tmp;
     while (true) {
         tmp = inputTeksBolehKosong("  Nama baru     : ");
@@ -721,12 +737,21 @@ void editLayanan() {
         l.namaLayanan = tmp;
         break;
     }
+
+    cout << "  Jenis baru:\n";
+    cout << "    " << CYN << "1" << R << ". Kiloan\n";
+    cout << "    " << CYN << "2" << R << ". Satuan\n";
+    string inputJenis;
     while (true) {
-        tmp = inputTeksBolehKosong("  Jenis baru (Kiloan/Satuan): ");
-        if (tmp.empty()) break;
-        if (tmp == "Kiloan" || tmp == "Satuan") { l.jenis = tmp; break; }
-        tampilkanPesan("peringatan", "Jenis tidak valid, ulangi.");
+        cout << "  Pilih (1/2): ";
+        getline(cin, inputJenis);
+        inputJenis = trim(inputJenis);
+        if (inputJenis.empty()) { break; }
+        if (inputJenis == "1") { l.jenis = "Kiloan"; break; }
+        if (inputJenis == "2") { l.jenis = "Satuan"; break; }
+        tampilkanPesan("peringatan", "Input tidak valid!");
     }
+
     while (true) {
         tmp = inputTeksBolehKosong("  Harga baru (Enter=skip)  : Rp ");
         if (tmp.empty()) break;
@@ -737,15 +762,45 @@ void editLayanan() {
             break;
         } catch (...) { tampilkanPesan("peringatan", "Format harga tidak valid, ulangi."); }
     }
-    tmp = inputTeksBolehKosong("  Estimasi baru : ");
-    if (!tmp.empty()) l.estimasi = tmp;
+
+    tmp = inputTeksBolehKosong("  Estimasi baru (angka, Enter=skip): ");
+    if (!tmp.empty()) {
+        try {
+            int est = stoi(tmp);
+            if (est >= 1 && est <= 30) {
+                l.estimasi = to_string(est) + " Hari";
+            } else {
+                tampilkanPesan("peringatan", "Estimasi harus 1-30 hari.");
+            }
+        } catch (...) {
+            tampilkanPesan("peringatan", "Input estimasi harus angka.");
+        }
+    }
+
     cout << "  Tambahan baru:\n";
-    cout << "    " << CYN << "0" << R << ". Lewati\n";
     cout << "    " << CYN << "1" << R << ". Tanpa Setrika\n";
     cout << "    " << CYN << "2" << R << ". Setrika + Lipat\n";
-    int p = inputAngkaBatas("  Pilih (0/1/2): ", 0, 2);
-    if (p == 1) l.tambahan = "Tanpa Setrika";
-    else if (p == 2) l.tambahan = "Setrika + Lipat";
+    string inputTambahan;
+    while (true) {
+        cout << "  Pilih (1/2): ";
+        getline(cin, inputTambahan);
+        inputTambahan = trim(inputTambahan);
+        if (inputTambahan.empty()) { break; }
+        if (inputTambahan == "1") { l.tambahan = "Tanpa Setrika"; break; }
+        if (inputTambahan == "2") { l.tambahan = "Setrika + Lipat"; break; }
+        tampilkanPesan("peringatan", "Input tidak valid!");
+    }
+
+    cout << "\n" << DM << "  Ringkasan perubahan:\n" << R;
+    cout << "  Nama     : " << l.namaLayanan << "\n";
+    cout << "  Jenis    : " << l.jenis << "\n";
+    cout << "  Harga    : Rp " << static_cast<int>(l.harga) << "\n";
+    cout << "  Estimasi : " << l.estimasi << "\n";
+    cout << "  Tambahan : " << l.tambahan << "\n\n";
+    if (!konfirmasi("  Simpan perubahan ini?")) {
+        tampilkanPesan("info", "Edit layanan dibatalkan.");
+        return;
+    }
     simpanData();
     tampilkanPesan("sukses", "Layanan berhasil diperbarui.");
 }
