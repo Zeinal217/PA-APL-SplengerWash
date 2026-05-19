@@ -219,12 +219,20 @@ int inputAngka(const string& text) {
         try {
             cout << text;
             getline(cin, s);
+            
+            if (s.find_first_of(" \t") != string::npos) {
+                cout << RD << "  Input tidak boleh mengandung spasi!\n" << R;
+                continue;
+            }
+            
             s = trim(s);
             if (s.empty()) { cout << RD << "  Input tidak boleh kosong!\n" << R; continue; }
+            
             if (s[0] == '-') {
                 cout << RD << "  Input tidak boleh negatif!\n" << R;
                 continue;
             }
+            
             size_t pos;
             long long val = stoll(s, &pos);
             if (pos != s.length()) throw invalid_argument("");
@@ -1600,7 +1608,18 @@ void menuAdmin() {
         cout << "  " << CYN << "5" << R << ". Kelola Pelanggan\n";
         cout << "  " << RD << "6" << R << ". Logout\n";
         garis();
-        int p = inputAngka("Pilih: ");
+        
+        int p;
+        while (true) {
+            try {
+                p = inputAngka("Pilih: ");
+                if (p >= 1 && p <= 6) break;
+                cout << RD << "  Pilihan tidak valid! Masukkan angka 1-6.\n" << R;
+            } catch (...) {
+                tampilkanPesan("error", "Error input menu!");
+            }
+        }
+        
         switch (p) {
             case 1: bersihkanLayar(); tampilkanHeader(); menuKelolalayanan(); break;
             case 2: bersihkanLayar(); tampilkanHeader(); menuKelolaTransaksi(); break;
@@ -1613,9 +1632,6 @@ void menuAdmin() {
                 cout << YL << "\n  Logout berhasil. Sampai jumpa!\n" << R;
                 jedaLayar();
                 break;
-            default:
-                cout << RD << "  Pilihan tidak valid! Masukkan angka 1-6.\n" << R;
-                jedaLayar();
         }
     }
 }
@@ -1632,7 +1648,18 @@ void menuPelanggan() {
         cout << "  " << CYN << "4" << R << ". Batalkan Order\n";
         cout << "  " << RD << "5" << R << ". Logout\n";
         garis();
-        int p = inputAngka("Pilih: ");
+        
+        int p;
+        while (true) {
+            try {
+                p = inputAngka("Pilih: ");
+                if (p >= 1 && p <= 5) break;
+                cout << RD << "  Pilihan tidak valid.\n" << R;
+            } catch (...) {
+                tampilkanPesan("error", "Error input menu!");
+            }
+        }
+        
         switch (p) {
             case 1: bersihkanLayar(); tampilkanHeader(); lihatLayananTersedia(); jedaLayar(); break;
             case 2: bersihkanLayar(); tampilkanHeader(); buatOrderBaru();        jedaLayar(); break;
@@ -1644,9 +1671,6 @@ void menuPelanggan() {
                 cout << YL << "\n  Logout berhasil. Sampai jumpa!\n" << R;
                 jedaLayar();
                 break;
-            default:
-                cout << RD << "  Pilihan tidak valid.\n" << R;
-                jedaLayar();
         }
     }
 }
