@@ -14,16 +14,20 @@
 #endif
 using namespace std;
 
-const string R  = "\033[0m"; // Reset
-const string B  = "\033[1m"; // Bold
-const string DM = "\033[2m"; //Dim (redup)
-const string IT = "\033[3m"; // Italic miring)
-const string RD = "\033[31m"; // Red
-const string GR = "\033[32m"; // Green
-const string YL = "\033[33m"; // Yellow
-const string BL = "\033[34m"; // Blue
-const string MG = "\033[35m"; // Magenta
-const string CYN = "\033[36m"; // Cyan
+const string R  = "\033[0m";
+const string B  = "\033[1m";
+const string DM = "\033[2m";
+const string IT = "\033[3m";
+const string RD = "\033[31m";
+const string GR = "\033[32m";
+const string YL = "\033[33m";
+const string BL = "\033[34m";
+const string MG = "\033[35m";
+const string CYN = "\033[36m";
+const string WH = "\033[37m";
+const string BGR = "\033[41m";
+const string BGG = "\033[42m";
+const string BGY = "\033[43m";
 
 struct Layanan {
     int idLayanan;
@@ -219,20 +223,16 @@ int inputAngka(const string& text) {
         try {
             cout << text;
             getline(cin, s);
-            
             if (s.find_first_of(" \t") != string::npos) {
                 cout << RD << "  Input tidak boleh mengandung spasi!\n" << R;
                 continue;
             }
-            
             s = trim(s);
             if (s.empty()) { cout << RD << "  Input tidak boleh kosong!\n" << R; continue; }
-            
             if (s[0] == '-') {
                 cout << RD << "  Input tidak boleh negatif!\n" << R;
                 continue;
             }
-            
             size_t pos;
             long long val = stoll(s, &pos);
             if (pos != s.length()) throw invalid_argument("");
@@ -416,6 +416,10 @@ void muatData() {
         if (fL.is_open()) {
             fL >> jumlahLayanan >> nextIdLayanan;
             fL.ignore(numeric_limits<streamsize>::max(), '\n');
+            if (jumlahLayanan > MAKS_LAYANAN) {
+                tampilkanPesan("peringatan", "Data layanan melebihi kapasitas! Hanya " + to_string(MAKS_LAYANAN) + " data pertama yang dimuat.");
+                jumlahLayanan = MAKS_LAYANAN;
+            }
             for (int i = 0; i < jumlahLayanan; i++) {
                 fL >> daftarLayanan[i].idLayanan >> daftarLayanan[i].harga;
                 fL.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -440,6 +444,10 @@ void muatData() {
         if (fP.is_open()) {
             fP >> jumlahPelanggan >> nextIdPelanggan;
             fP.ignore(numeric_limits<streamsize>::max(), '\n');
+            if (jumlahPelanggan > MAKS_PELANGGAN) {
+                tampilkanPesan("peringatan", "Data pelanggan melebihi kapasitas! Hanya " + to_string(MAKS_PELANGGAN) + " data pertama yang dimuat.");
+                jumlahPelanggan = MAKS_PELANGGAN;
+            }
             for (int i = 0; i < jumlahPelanggan; i++) {
                 fP >> daftarPelanggan[i].idPelanggan;
                 fP.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -459,6 +467,10 @@ void muatData() {
         if (fT.is_open()) {
             fT >> jumlahTransaksi >> nextIdTransaksi >> nextNoAntrian;
             fT.ignore(numeric_limits<streamsize>::max(), '\n');
+            if (jumlahTransaksi > MAKS_TRANSAKSI) {
+                tampilkanPesan("peringatan", "Data transaksi melebihi kapasitas! Hanya " + to_string(MAKS_TRANSAKSI) + " data pertama yang dimuat.");
+                jumlahTransaksi = MAKS_TRANSAKSI;
+            }
             for (int i = 0; i < jumlahTransaksi; i++) {
                 fT >> daftarTransaksi[i].idTransaksi
                     >> daftarTransaksi[i].noAntrian
@@ -1057,9 +1069,16 @@ void hapusCancelOrder() {
         if (idx != -1) break;
         tampilkanPesan("error", "ID transaksi " + to_string(id) + " tidak ditemukan!");
     }
+    
+    string statusSaatIni = daftarTransaksi[idx].status;
+    if (statusSaatIni == "Selesai" || statusSaatIni == "Lunas" || statusSaatIni == "Dibatalkan") {
+        tampilkanPesan("error", "Order tidak bisa dibatalkan karena status sudah '" + statusSaatIni + "'!");
+        return;
+    }
+    
     cout << "\n  Order yang akan dibatalkan:\n";
     cout << "  ID     : " << daftarTransaksi[idx].idTransaksi << "\n";
-    cout << "  Status : " << daftarTransaksi[idx].status << "\n\n";
+    cout << "  Status : " << statusSaatIni << "\n\n";
     if (!konfirmasi("  Yakin ingin membatalkan order ini?")) {
         tampilkanPesan("info", "Pembatalan dibatalkan.");
         return;
@@ -1608,7 +1627,6 @@ void menuAdmin() {
         cout << "  " << CYN << "5" << R << ". Kelola Pelanggan\n";
         cout << "  " << RD << "6" << R << ". Logout\n";
         garis();
-        
         int p;
         while (true) {
             try {
@@ -1619,7 +1637,6 @@ void menuAdmin() {
                 tampilkanPesan("error", "Error input menu!");
             }
         }
-        
         switch (p) {
             case 1: bersihkanLayar(); tampilkanHeader(); menuKelolalayanan(); break;
             case 2: bersihkanLayar(); tampilkanHeader(); menuKelolaTransaksi(); break;
@@ -1648,7 +1665,6 @@ void menuPelanggan() {
         cout << "  " << CYN << "4" << R << ". Batalkan Order\n";
         cout << "  " << RD << "5" << R << ". Logout\n";
         garis();
-        
         int p;
         while (true) {
             try {
@@ -1659,7 +1675,6 @@ void menuPelanggan() {
                 tampilkanPesan("error", "Error input menu!");
             }
         }
-        
         switch (p) {
             case 1: bersihkanLayar(); tampilkanHeader(); lihatLayananTersedia(); jedaLayar(); break;
             case 2: bersihkanLayar(); tampilkanHeader(); buatOrderBaru();        jedaLayar(); break;
