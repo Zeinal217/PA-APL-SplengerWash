@@ -14,20 +14,16 @@
 #endif
 using namespace std;
 
-const string R  = "\033[0m";
-const string B  = "\033[1m";
-const string DM = "\033[2m";
-const string IT = "\033[3m";
-const string RD = "\033[31m";
-const string GR = "\033[32m";
-const string YL = "\033[33m";
-const string BL = "\033[34m";
-const string MG = "\033[35m";
-const string CYN = "\033[36m";
-const string WH = "\033[37m";
-const string BGR = "\033[41m";
-const string BGG = "\033[42m";
-const string BGY = "\033[43m";
+const string R  = "\033[0m"; // Reset
+const string B  = "\033[1m"; // Bold
+const string DM = "\033[2m"; //Dim (redup)
+const string IT = "\033[3m"; // Italic miring)
+const string RD = "\033[31m"; // Red
+const string GR = "\033[32m"; // Green
+const string YL = "\033[33m"; // Yellow
+const string BL = "\033[34m"; // Blue
+const string MG = "\033[35m"; // Magenta
+const string CYN = "\033[36m"; // Cyan
 
 struct Layanan {
     int idLayanan;
