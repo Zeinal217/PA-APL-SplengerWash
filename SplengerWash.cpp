@@ -221,6 +221,10 @@ int inputAngka(const string& text) {
             getline(cin, s);
             s = trim(s);
             if (s.empty()) { cout << RD << "  Input tidak boleh kosong!\n" << R; continue; }
+            if (s[0] == '-') {
+                cout << RD << "  Input tidak boleh negatif!\n" << R;
+                continue;
+            }
             size_t pos;
             long long val = stoll(s, &pos);
             if (pos != s.length()) throw invalid_argument("");
@@ -1658,6 +1662,7 @@ int main() {
     system("chcp 65001 > nul");
     muatData();
     simpanData();
+    
     int pilihan = -1;
     do {
         bersihkanLayar(); tampilkanHeader();
@@ -1670,13 +1675,17 @@ int main() {
         cout << "  " << CYN << "3" << R << ". Daftar Pelanggan\n";
         cout << "  " << RD << "0" << R << ". Keluar\n";
         garis();
-        try {
-            pilihan = inputAngka("Pilih: ");
-        } catch (...) {
-            tampilkanPesan("error", "Error input menu!");
-            jedaLayar();
-            continue;
+        
+        while (true) {
+            try {
+                pilihan = inputAngka("Pilih: ");
+                if (pilihan >= 0 && pilihan <= 3) break;
+                cout << RD << "  Pilihan tidak valid! Masukkan angka 0-3.\n" << R;
+            } catch (...) {
+                tampilkanPesan("error", "Error input menu!");
+            }
         }
+        
         switch (pilihan) {
             case 1:
                 bersihkanLayar(); tampilkanHeader();
@@ -1709,9 +1718,6 @@ int main() {
             case 0:
                 cout << GR << "\n  Terima kasih!\n" << R;
                 break;
-            default:
-                cout << RD << "  Pilihan tidak valid! Masukkan angka 0-3.\n" << R;
-                jedaLayar();
         }
     } while (pilihan != 0);
     return 0;
